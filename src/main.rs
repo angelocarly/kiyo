@@ -1,3 +1,8 @@
+mod window;
+mod application;
+
+
 fn main() {
-    println!("Hello, world!");
+    let mut app = application::Application::new();
+    app.run();
 }
