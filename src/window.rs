@@ -16,7 +16,6 @@ pub(crate) struct Window
 
 impl Window {
     pub fn create(event_loop: &EventLoop<()>) -> Window {
-
         let window = winit::window::WindowBuilder::new()
             .with_title(WINDOW_TITLE)
             .with_inner_size(winit::dpi::LogicalSize::new(WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -30,7 +29,11 @@ impl Window {
         }
     }
 
-    pub fn window_event(&mut self, event: winit::event::WindowEvent) {
+    pub fn window_handle(&self) -> &winit::window::Window {
+        &self.window
+    }
+
+    pub fn window_event(&mut self, event: WindowEvent) {
         match event {
             | WindowEvent::CloseRequested => {
                 self.close_requested = true;
