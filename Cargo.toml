@@ -1,5 +1,5 @@
 [package]
-name = "lov"
+name = "akai"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,3 +9,4 @@ edition = "2021"
 ash = { version = "0.38.0", features = ["linked"] }
 ash-window = "0.13.0"
 winit = "0.29.15"
+
