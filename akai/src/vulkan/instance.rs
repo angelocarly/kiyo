@@ -1,9 +1,9 @@
-use std::ffi::{CStr, CString};
-use std::os::raw::c_void;
-use std::{ptr, vec};
 use ash::ext::debug_utils;
 use ash::vk;
 use ash::vk::DebugUtilsMessengerEXT;
+use std::ffi::{CStr, CString};
+use std::os::raw::c_void;
+use std::{ptr, vec};
 use winit::raw_window_handle::HasDisplayHandle;
 
 struct ValidationInfo {
@@ -44,8 +44,8 @@ pub struct Instance {
 
 impl Instance {
     pub fn new(entry: &ash::Entry, window: &winit::window::Window) -> Self {
-        let app_name = CString::new("Lov").unwrap();
-        let engine_name = CString::new("Lov Engine").unwrap();
+        let app_name = CString::new("Akai").unwrap();
+        let engine_name = CString::new("Akai Engine").unwrap();
         let app_info = vk::ApplicationInfo::default()
             .application_version(0)
             .engine_name(engine_name.as_c_str())
@@ -59,9 +59,16 @@ impl Instance {
                 .to_vec();
         extension_names.push(debug_utils::NAME.as_ptr());
 
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        {
+            extension_names.push(ash::khr::portability_enumeration::NAME.as_ptr());
+            // Enabling this extension is a requirement when using `VK_KHR_portability_subset`
+            extension_names.push(ash::khr::get_physical_device_properties2::NAME.as_ptr());
+        }
+
         let validation: ValidationInfo = ValidationInfo {
             is_enable: true,
-            required_validation_layers: vec!(CString::new("VK_LAYER_KHRONOS_validation").unwrap()),
+            required_validation_layers: vec![CString::new("VK_LAYER_KHRONOS_validation").unwrap()],
         };
 
         let c_ptr_validation_layers = validation
@@ -70,24 +77,33 @@ impl Instance {
             .map(|layer_name| layer_name.as_ptr())
             .collect::<Vec<_>>();
 
+        let create_flags = if cfg!(any(target_os = "macos", target_os = "ios")) {
+            vk::InstanceCreateFlags::ENUMERATE_PORTABILITY_KHR
+        } else {
+            vk::InstanceCreateFlags::default()
+        };
+
         let create_info = vk::InstanceCreateInfo::default()
             .application_info(&app_info)
             .enabled_extension_names(&extension_names)
-            .enabled_layer_names(&c_ptr_validation_layers);
+            .enabled_layer_names(&c_ptr_validation_layers)
+            .flags(create_flags);
 
         println!("Creating instance");
         let instance: ash::Instance = unsafe {
-            entry.create_instance(&create_info, None).expect("Instance creation error")
+            entry
+                .create_instance(&create_info, None)
+                .expect("Instance creation error")
         };
 
         let debug_utils_create_info = vk::DebugUtilsMessengerCreateInfoEXT {
             s_type: vk::StructureType::DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
             p_next: ptr::null(),
             flags: vk::DebugUtilsMessengerCreateFlagsEXT::empty(),
-            message_severity: vk::DebugUtilsMessageSeverityFlagsEXT::WARNING |
-                vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE |
-                vk::DebugUtilsMessageSeverityFlagsEXT::INFO |
-                vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
+            message_severity: vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
+                | vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
+                | vk::DebugUtilsMessageSeverityFlagsEXT::INFO
+                | vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
             message_type: vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
                 | vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
                 | vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
@@ -97,15 +113,14 @@ impl Instance {
         };
 
         let debug_utils = debug_utils::Instance::new(entry, &instance);
-        let debug_utils_messenger = unsafe {
-            debug_utils
-                .create_debug_utils_messenger(&debug_utils_create_info, None)
-        }.expect("Failed to create debug utils messenger");
+        let debug_utils_messenger =
+            unsafe { debug_utils.create_debug_utils_messenger(&debug_utils_create_info, None) }
+                .expect("Failed to create debug utils messenger");
 
         Self {
             instance,
             debug_utils,
-            debug_utils_messenger
+            debug_utils_messenger,
         }
     }
 }
@@ -113,7 +128,8 @@ impl Instance {
 impl Drop for Instance {
     fn drop(&mut self) {
         unsafe {
-            self.debug_utils.destroy_debug_utils_messenger(self.debug_utils_messenger, None);
+            self.debug_utils
+                .destroy_debug_utils_messenger(self.debug_utils_messenger, None);
             self.instance.destroy_instance(None);
         }
     }

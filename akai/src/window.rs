@@ -1,16 +1,14 @@
-use winit::event::{ElementState, KeyEvent};
 use winit::event::WindowEvent;
-use winit::event_loop::EventLoop;
+use winit::event::{ElementState, KeyEvent};
+use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::keyboard::{Key, NamedKey};
 
 const WINDOW_TITLE: &'static str = "Lov";
 const WINDOW_WIDTH: u32 = 800;
 const WINDOW_HEIGHT: u32 = 600;
 
-pub(crate) struct Window
-{
+pub(crate) struct Window {
     window: winit::window::Window,
-    close_requested: bool,
     redraw_requested: bool,
 }
 
@@ -23,7 +21,6 @@ impl Window {
             .expect("Failed to create window.");
 
         Window {
-            close_requested: false,
             redraw_requested: false,
             window,
         }
@@ -33,31 +30,29 @@ impl Window {
         &self.window
     }
 
-    pub fn window_event(&mut self, event: WindowEvent) {
+    pub fn window_event(&mut self, event: WindowEvent, elwt: &EventLoopWindowTarget<()>) {
         match event {
-            | WindowEvent::CloseRequested => {
-                self.close_requested = true;
+            WindowEvent::CloseRequested => {
+                elwt.exit();
             }
-            | WindowEvent::RedrawRequested => {
+            WindowEvent::RedrawRequested => {
                 self.redraw_requested = true;
             }
-            | WindowEvent::KeyboardInput {
+            WindowEvent::KeyboardInput {
                 event:
-                KeyEvent {
-                    logical_key: key,
-                    state: ElementState::Pressed,
-                    ..
-                },
+                    KeyEvent {
+                        logical_key: key,
+                        state: ElementState::Pressed,
+                        ..
+                    },
                 ..
-            } => {
-                match key.as_ref() {
-                    Key::Named(NamedKey::Escape) => {
-                        self.close_requested = true;
-                    }
-                    _ => {}
+            } => match key.as_ref() {
+                Key::Named(NamedKey::Escape) => {
+                    elwt.exit();
                 }
-            }
-            | _ => {}
+                _ => {}
+            },
+            _ => {}
         }
     }
 }
