@@ -1,10 +1,12 @@
 use ash::ext::debug_utils;
 use ash::vk;
-use ash::vk::DebugUtilsMessengerEXT;
+use ash::vk::{DebugUtilsMessengerEXT, PhysicalDevice};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_void;
 use std::{ptr, vec};
-use winit::raw_window_handle::HasDisplayHandle;
+use ash::khr::surface;
+use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle};
+use crate::window::Window;
 
 struct ValidationInfo {
     is_enable: bool,
@@ -36,14 +38,15 @@ unsafe extern "system" fn vulkan_debug_utils_callback(
     vk::FALSE
 }
 
-pub struct Instance {
+pub struct Instance<'a> {
+    entry: &'a ash::Entry,
     instance: ash::Instance,
     pub debug_utils: ash::ext::debug_utils::Instance,
     pub debug_utils_messenger: DebugUtilsMessengerEXT,
 }
 
-impl Instance {
-    pub fn new(entry: &ash::Entry, window: &winit::window::Window) -> Self {
+impl<'a> Instance<'a> {
+    pub fn new(entry: &'a ash::Entry, window: &winit::window::Window) -> Self {
         let app_name = CString::new("Akai").unwrap();
         let engine_name = CString::new("Akai Engine").unwrap();
         let app_info = vk::ApplicationInfo::default()
@@ -59,7 +62,7 @@ impl Instance {
                 .to_vec();
         extension_names.push(debug_utils::NAME.as_ptr());
 
-        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        #[cfg(any(target_os = "macos"))]
         {
             extension_names.push(ash::khr::portability_enumeration::NAME.as_ptr());
             // Enabling this extension is a requirement when using `VK_KHR_portability_subset`
@@ -77,7 +80,7 @@ impl Instance {
             .map(|layer_name| layer_name.as_ptr())
             .collect::<Vec<_>>();
 
-        let create_flags = if cfg!(any(target_os = "macos", target_os = "ios")) {
+        let create_flags = if cfg!(any(target_os = "macos")) {
             vk::InstanceCreateFlags::ENUMERATE_PORTABILITY_KHR
         } else {
             vk::InstanceCreateFlags::default()
@@ -118,14 +121,58 @@ impl Instance {
                 .expect("Failed to create debug utils messenger");
 
         Self {
+            entry,
             instance,
             debug_utils,
             debug_utils_messenger,
         }
     }
+
+    pub fn create_physical_device(self, window: &winit::window::Window) -> (PhysicalDevice, usize) {
+        let surface = unsafe {
+            ash_window::create_surface(
+                &self.entry,
+                &self.instance,
+                window.display_handle().unwrap().as_raw(),
+                window.window_handle().unwrap().as_raw(),
+                None,
+            ).expect("Failed to get surface.")
+        };
+        let physical_devices = unsafe {
+            self.instance
+                .enumerate_physical_devices()
+                .expect("Failed to enumerate physical devices.")
+        };
+        let surface_loader = surface::Instance::new(self.entry, &self.instance);
+        let (physical_device, queue_family_index) = physical_devices
+            .iter()
+            .find_map(|physical_device| {
+                unsafe {
+                    self.instance.get_physical_device_queue_family_properties(*physical_device)
+                        .iter()
+                        .enumerate()
+                        .find_map(|(index, info)| {
+                            let supports_graphics_and_surface =
+                                info.queue_flags.contains(vk::QueueFlags::GRAPHICS)
+                                && surface_loader.get_physical_device_surface_support(
+                                    *physical_device,
+                                    index as u32,
+                                    surface
+                                ).unwrap();
+                            if supports_graphics_and_surface {
+                                Some((*physical_device, index))
+                            } else {
+                                None
+                            }
+                        })
+                }
+            })
+            .expect("Couldn't find a suitable device.");
+        (physical_device, queue_family_index)
+    }
 }
 
-impl Drop for Instance {
+impl Drop for Instance<'_> {
     fn drop(&mut self) {
         unsafe {
             self.debug_utils

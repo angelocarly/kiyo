@@ -3,7 +3,7 @@ use winit::event::{ElementState, KeyEvent};
 use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::keyboard::{Key, NamedKey};
 
-const WINDOW_TITLE: &'static str = "Lov";
+const WINDOW_TITLE: &'static str = "Akai";
 const WINDOW_WIDTH: u32 = 800;
 const WINDOW_HEIGHT: u32 = 600;
 

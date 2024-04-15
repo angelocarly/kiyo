@@ -15,13 +15,17 @@ impl Application {
         let mut window = window::Window::create(&event_loop);
 
         let entry = ash::Entry::linked();
-        let _instance = vulkan::Instance::new(&entry, window.window_handle());
+        let instance = vulkan::Instance::new(&entry, window.window_handle());
+        let (physical_device, queue_family_index) = instance.create_physical_device(window.window_handle());
+        println!("Queue family index: {}", queue_family_index);
+
+        println!("Destroyed instance?");
+
 
         println!("Running application");
         event_loop
             .run(|event, elwt| match event {
                 Event::WindowEvent { event, .. } => {
-                    println!("Window event: {:?}", event);
                     window.window_event(event, elwt);
                 }
                 _ => {}
@@ -29,4 +33,3 @@ impl Application {
             .unwrap()
     }
 }
-
