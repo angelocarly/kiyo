@@ -2,6 +2,8 @@ use winit::event::WindowEvent;
 use winit::event::{ElementState, KeyEvent};
 use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::keyboard::{Key, NamedKey};
+use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawDisplayHandle, RawWindowHandle};
+use crate::vulkan::Instance;
 
 const WINDOW_TITLE: &'static str = "Akai";
 const WINDOW_WIDTH: u32 = 800;
@@ -26,8 +28,12 @@ impl Window {
         }
     }
 
-    pub fn window_handle(&self) -> &winit::window::Window {
-        &self.window
+    pub fn window_handle(&self) -> RawWindowHandle {
+        self.window.window_handle().unwrap().as_raw()
+    }
+
+    pub fn display_handle(&self) -> RawDisplayHandle {
+        self.window.display_handle().unwrap().as_raw()
     }
 
     pub fn window_event(&mut self, event: WindowEvent, elwt: &EventLoopWindowTarget<()>) {

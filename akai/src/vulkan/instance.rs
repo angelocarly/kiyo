@@ -1,11 +1,13 @@
 use ash::ext::debug_utils;
-use ash::vk;
+use ash::{Entry, vk};
 use ash::vk::{DebugUtilsMessengerEXT, PhysicalDevice};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_void;
 use std::{ptr, vec};
+use std::rc::Rc;
 use ash::khr::surface;
-use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle};
+use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawDisplayHandle};
+use crate::vulkan::surface::Surface;
 use crate::window::Window;
 
 struct ValidationInfo {
@@ -38,15 +40,15 @@ unsafe extern "system" fn vulkan_debug_utils_callback(
     vk::FALSE
 }
 
-pub struct Instance<'a> {
-    entry: &'a ash::Entry,
+pub struct Instance {
+    entry: Rc<Entry>,
     instance: ash::Instance,
     pub debug_utils: ash::ext::debug_utils::Instance,
     pub debug_utils_messenger: DebugUtilsMessengerEXT,
 }
 
-impl<'a> Instance<'a> {
-    pub fn new(entry: &'a ash::Entry, window: &winit::window::Window) -> Self {
+impl Instance {
+    pub fn new(entry: Rc<Entry>, display_handle: RawDisplayHandle) -> Self {
         let app_name = CString::new("Akai").unwrap();
         let engine_name = CString::new("Akai Engine").unwrap();
         let app_info = vk::ApplicationInfo::default()
@@ -57,7 +59,7 @@ impl<'a> Instance<'a> {
             .application_name(app_name.as_c_str());
 
         let mut extension_names =
-            ash_window::enumerate_required_extensions(window.display_handle().unwrap().as_raw())
+            ash_window::enumerate_required_extensions(display_handle)
                 .unwrap()
                 .to_vec();
         extension_names.push(debug_utils::NAME.as_ptr());
@@ -115,7 +117,7 @@ impl<'a> Instance<'a> {
             _marker: Default::default(),
         };
 
-        let debug_utils = debug_utils::Instance::new(entry, &instance);
+        let debug_utils = debug_utils::Instance::new(&entry, &instance);
         let debug_utils_messenger =
             unsafe { debug_utils.create_debug_utils_messenger(&debug_utils_create_info, None) }
                 .expect("Failed to create debug utils messenger");
@@ -128,22 +130,13 @@ impl<'a> Instance<'a> {
         }
     }
 
-    pub fn create_physical_device(self, window: &winit::window::Window) -> (PhysicalDevice, usize) {
-        let surface = unsafe {
-            ash_window::create_surface(
-                &self.entry,
-                &self.instance,
-                window.display_handle().unwrap().as_raw(),
-                window.window_handle().unwrap().as_raw(),
-                None,
-            ).expect("Failed to get surface.")
-        };
+    pub fn create_physical_device(&self, surface: &Surface) -> (PhysicalDevice, usize) {
         let physical_devices = unsafe {
             self.instance
                 .enumerate_physical_devices()
                 .expect("Failed to enumerate physical devices.")
         };
-        let surface_loader = surface::Instance::new(self.entry, &self.instance);
+        let surface_loader = surface::Instance::new(&*self.entry, &self.instance);
         let (physical_device, queue_family_index) = physical_devices
             .iter()
             .find_map(|physical_device| {
@@ -157,7 +150,7 @@ impl<'a> Instance<'a> {
                                 && surface_loader.get_physical_device_surface_support(
                                     *physical_device,
                                     index as u32,
-                                    surface
+                                    *surface.get_vk_surface()
                                 ).unwrap();
                             if supports_graphics_and_surface {
                                 Some((*physical_device, index))
@@ -170,9 +163,17 @@ impl<'a> Instance<'a> {
             .expect("Couldn't find a suitable device.");
         (physical_device, queue_family_index)
     }
+
+    pub fn get_vk_instance(&self) -> &ash::Instance {
+        &self.instance
+    }
+
+    pub fn get_entry(&self) -> Rc<Entry> {
+        self.entry.clone()
+    }
 }
 
-impl Drop for Instance<'_> {
+impl Drop for Instance {
     fn drop(&mut self) {
         unsafe {
             self.debug_utils

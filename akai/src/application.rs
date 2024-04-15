@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use crate::{vulkan, window};
 use winit::event::Event;
 use winit::event_loop::EventLoop;
@@ -14,13 +15,10 @@ impl Application {
 
         let mut window = window::Window::create(&event_loop);
 
-        let entry = ash::Entry::linked();
-        let instance = vulkan::Instance::new(&entry, window.window_handle());
-        let (physical_device, queue_family_index) = instance.create_physical_device(window.window_handle());
-        println!("Queue family index: {}", queue_family_index);
-
-        println!("Destroyed instance?");
-
+        let entry = Rc::new(ash::Entry::linked());
+        let instance = Rc::new( vulkan::Instance::new(entry.clone(), window.display_handle()) );
+        let surface = vulkan::Surface::new(instance.clone(), &window);
+        let (physical_device, queue_family_index) = instance.create_physical_device(&surface);
 
         println!("Running application");
         event_loop
