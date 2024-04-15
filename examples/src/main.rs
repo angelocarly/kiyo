@@ -1,6 +1,4 @@
-mod window;
-mod application;
-mod vulkan;
+use akai::application;
 
 fn main() {
     let mut app = application::Application::new();

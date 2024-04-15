@@ -2,7 +2,7 @@ use winit::event::Event;
 use winit::event_loop::EventLoop;
 use crate::{vulkan, window};
 
-pub(crate) struct Application {
+pub struct Application {
 }
 
 impl Application {
