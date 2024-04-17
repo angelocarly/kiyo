@@ -130,7 +130,7 @@ impl Instance {
         }
     }
 
-    pub fn create_physical_device(&self, surface: &Surface) -> (PhysicalDevice, usize) {
+    pub fn create_physical_device(&self, surface: &Surface) -> (PhysicalDevice, u32) {
         let physical_devices = unsafe {
             self.instance
                 .enumerate_physical_devices()
@@ -161,7 +161,7 @@ impl Instance {
                 }
             })
             .expect("Couldn't find a suitable device.");
-        (physical_device, queue_family_index)
+        (physical_device, queue_family_index as u32)
     }
 
     pub fn get_vk_instance(&self) -> &ash::Instance {

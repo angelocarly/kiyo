@@ -19,6 +19,7 @@ impl Application {
         let instance = Rc::new( vulkan::Instance::new(entry.clone(), window.display_handle()) );
         let surface = vulkan::Surface::new(instance.clone(), &window);
         let (physical_device, queue_family_index) = instance.create_physical_device(&surface);
+        let _device = vulkan::Device::new(instance, physical_device, queue_family_index);
 
         println!("Running application");
         event_loop
