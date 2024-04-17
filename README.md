@@ -10,13 +10,7 @@ As this is my first delve into combining Vulkan with Rust, for that reason I'd l
 
 ## Building & running
 
-Install the [Vulkan SDK](https://vulkan.lunarg.com) and set the path environment variables:
-```
-export VULKAN_SDK=/path/to/vulkan/sdk
-# Required for MoltenVK/Mac
-export VK_ICD_FILENAMES=/path/to/vulkan/sdk/etc/vulkan/icd.d
-```
-
+Make sure you have the [Vulkan SDK](https://vulkan.lunarg.com) installed.  
 Then build `akai`:
 ```
 git clone https://github.com/angelocarly/akai.git
