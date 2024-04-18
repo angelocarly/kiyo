@@ -17,3 +17,6 @@ git clone https://github.com/angelocarly/akai.git
 cd akai
 cargo run
 ```
+
+## Libraries
+- [imgui-rs-vulkan-renderer](https://github.com/adrien-ben/imgui-rs-vulkan-renderer) - TODO: Investigate adding this library
