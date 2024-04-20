@@ -45,6 +45,7 @@ impl Device {
 impl Drop for Device {
     fn drop(&mut self) {
         unsafe {
+            println!("Drop device");
             self.device.device_wait_idle().unwrap();
             self.device.destroy_device(None);
         }
