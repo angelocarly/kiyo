@@ -21,7 +21,7 @@ impl Application {
     pub fn new() -> Application {
 
         let event_loop = EventLoop::new().expect("Failed to create event loop.");
-        let mut window = window::Window::create(&event_loop);
+        let window = window::Window::create(&event_loop);
 
         let entry = Rc::new(ash::Entry::linked());
         let instance = Rc::new( vulkan::Instance::new(entry.clone(), window.display_handle()) );

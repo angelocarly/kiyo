@@ -1,6 +1,6 @@
 use akai::application;
 
 fn main() {
-    let mut app = application::Application::new();
+    let app = application::Application::new();
     app.run();
 }

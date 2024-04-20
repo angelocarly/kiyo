@@ -6,12 +6,10 @@ use std::os::raw::c_void;
 use std::{ptr, vec};
 use std::rc::Rc;
 use ash::khr::surface;
-use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawDisplayHandle};
+use winit::raw_window_handle::RawDisplayHandle;
 use crate::vulkan::surface::Surface;
-use crate::window::Window;
 
 struct ValidationInfo {
-    is_enable: bool,
     required_validation_layers: Vec<CString>,
 }
 
@@ -72,7 +70,6 @@ impl Instance {
         }
 
         let validation: ValidationInfo = ValidationInfo {
-            is_enable: true,
             required_validation_layers: vec![CString::new("VK_LAYER_KHRONOS_validation").unwrap()],
         };
 

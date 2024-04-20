@@ -1,12 +1,11 @@
 use std::rc::Rc;
 use ash::khr::surface;
 use ash::vk::SurfaceKHR;
-use winit::raw_window_handle::HasDisplayHandle;
 use crate::vulkan::Instance;
 use crate::window::Window;
 
 pub struct Surface {
-    instance: Rc<Instance>,
+    _instance: Rc<Instance>,
     surface: SurfaceKHR,
     surface_loader: surface::Instance,
 }
@@ -26,7 +25,7 @@ impl Surface {
         };
 
         Surface {
-            instance,
+            _instance: instance,
             surface,
             surface_loader,
         }
