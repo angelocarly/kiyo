@@ -10,11 +10,11 @@ use crate::window::Window;
 pub struct Application {
     pub event_loop: EventLoop<()>,
     pub window: Window,
-    entry: Rc<ash::Entry>,
-    pub instance: Rc<Instance>,
+    pub entry: Rc<ash::Entry>,
     pub surface: Surface,
+    pub device: Rc<Device>,
     pub physical_device: PhysicalDevice,
-    pub device: Device,
+    pub instance: Rc<Instance>,
 }
 
 impl Application {
@@ -27,7 +27,7 @@ impl Application {
         let instance = Rc::new( vulkan::Instance::new(entry.clone(), window.display_handle()) );
         let surface = vulkan::Surface::new(instance.clone(), &window);
         let (physical_device, queue_family_index) = instance.create_physical_device(&surface);
-        let device = vulkan::Device::new(instance.clone(), physical_device, queue_family_index);
+        let device = Rc::new(Device::new(instance.clone(), physical_device, queue_family_index));
 
         Application {
             event_loop,
