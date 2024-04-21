@@ -38,6 +38,7 @@ unsafe extern "system" fn vulkan_debug_utils_callback(
     vk::FALSE
 }
 
+/// Vulkan instance. The root interface between the application and the graphics driver.
 pub struct Instance {
     entry: Arc<Entry>,
     instance: ash::Instance,

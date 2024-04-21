@@ -3,6 +3,7 @@ use ash::khr::swapchain;
 use ash::vk;
 use crate::vulkan::Instance;
 
+/// A connection to a physical GPU.
 pub struct Device {
     pub device: ash::Device,
 }
@@ -17,7 +18,7 @@ impl Device {
 
         let device_extension_names_raw = [
             swapchain::NAME.as_ptr(),
-            #[cfg(any(target_os = "macos", target_os = "ios"))]
+            #[cfg(target_os = "macos")]
                 ash::khr::portability_subset::NAME.as_ptr(),
         ];
 

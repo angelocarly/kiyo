@@ -4,20 +4,18 @@ use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::keyboard::{Key, NamedKey};
 use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawDisplayHandle, RawWindowHandle};
 
-const WINDOW_TITLE: & str = "Akai";
-const WINDOW_WIDTH: u32 = 800;
-const WINDOW_HEIGHT: u32 = 600;
-
+/// System window wrapper.
+/// Handles window events i.e. close, redraw, keyboard input.
 pub struct Window {
     window: winit::window::Window,
     redraw_requested: bool,
 }
 
 impl Window {
-    pub fn create(event_loop: &EventLoop<()>) -> Window {
+    pub fn create(event_loop: &EventLoop<()>, window_title: &str, width: u32, height: u32) -> Window {
         let window = winit::window::WindowBuilder::new()
-            .with_title(WINDOW_TITLE)
-            .with_inner_size(winit::dpi::LogicalSize::new(WINDOW_WIDTH, WINDOW_HEIGHT))
+            .with_title(window_title)
+            .with_inner_size(winit::dpi::LogicalSize::new(width, height))
             .build(event_loop)
             .expect("Failed to create window.");
 

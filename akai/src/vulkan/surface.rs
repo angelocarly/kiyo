@@ -4,7 +4,7 @@ use ash::vk::SurfaceKHR;
 use crate::vulkan::Instance;
 use crate::window::Window;
 
-/// Surface
+/// A presentation surface for rendering graphics to a window.
 pub struct Surface {
     _instance: Arc<Instance>,
     surface: SurfaceKHR,
