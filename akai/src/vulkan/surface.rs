@@ -1,22 +1,23 @@
-use std::rc::Rc;
+use std::sync::Arc;
 use ash::khr::surface;
 use ash::vk::SurfaceKHR;
 use crate::vulkan::Instance;
 use crate::window::Window;
 
+/// Surface
 pub struct Surface {
-    _instance: Rc<Instance>,
+    _instance: Arc<Instance>,
     surface: SurfaceKHR,
     surface_loader: surface::Instance,
 }
 
 impl Surface {
-    pub fn new(instance: Rc<Instance>, window: &Window) -> Surface {
-        let surface_loader = surface::Instance::new(&*instance.get_entry(), &instance.get_vk_instance());
+    pub fn new(instance: Arc<Instance>, window: &Window) -> Surface {
+        let surface_loader = surface::Instance::new(&instance.get_entry(), instance.get_vk_instance());
 
         let surface = unsafe {
             ash_window::create_surface(
-                &*instance.get_entry(),
+                &instance.get_entry(),
                 instance.get_vk_instance(),
                 window.display_handle(),
                 window.window_handle(),

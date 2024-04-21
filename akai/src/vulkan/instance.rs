@@ -4,7 +4,7 @@ use ash::vk::{DebugUtilsMessengerEXT, PhysicalDevice};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_void;
 use std::{ptr, vec};
-use std::rc::Rc;
+use std::sync::Arc;
 use ash::khr::surface;
 use winit::raw_window_handle::RawDisplayHandle;
 use crate::vulkan::surface::Surface;
@@ -39,14 +39,14 @@ unsafe extern "system" fn vulkan_debug_utils_callback(
 }
 
 pub struct Instance {
-    entry: Rc<Entry>,
+    entry: Arc<Entry>,
     instance: ash::Instance,
     pub debug_utils: ash::ext::debug_utils::Instance,
     pub debug_utils_messenger: DebugUtilsMessengerEXT,
 }
 
 impl Instance {
-    pub fn new(entry: Rc<Entry>, display_handle: RawDisplayHandle) -> Self {
+    pub fn new(entry: Arc<Entry>, display_handle: RawDisplayHandle) -> Self {
         let app_name = CString::new("Akai").unwrap();
         let engine_name = CString::new("Akai Engine").unwrap();
         let app_info = vk::ApplicationInfo::default()
@@ -62,7 +62,7 @@ impl Instance {
                 .to_vec();
         extension_names.push(debug_utils::NAME.as_ptr());
 
-        #[cfg(any(target_os = "macos"))]
+        #[cfg(target_os = "macos")]
         {
             extension_names.push(ash::khr::portability_enumeration::NAME.as_ptr());
             // Enabling this extension is a requirement when using `VK_KHR_portability_subset`
@@ -133,7 +133,7 @@ impl Instance {
                 .enumerate_physical_devices()
                 .expect("Failed to enumerate physical devices.")
         };
-        let surface_loader = surface::Instance::new(&*self.entry, &self.instance);
+        let surface_loader = surface::Instance::new(&self.entry, &self.instance);
         let (physical_device, queue_family_index) = physical_devices
             .iter()
             .find_map(|physical_device| {
@@ -165,7 +165,7 @@ impl Instance {
         &self.instance
     }
 
-    pub fn get_entry(&self) -> Rc<Entry> {
+    pub fn get_entry(&self) -> Arc<Entry> {
         self.entry.clone()
     }
 }

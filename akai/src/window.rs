@@ -4,7 +4,7 @@ use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::keyboard::{Key, NamedKey};
 use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawDisplayHandle, RawWindowHandle};
 
-const WINDOW_TITLE: &'static str = "Akai";
+const WINDOW_TITLE: & str = "Akai";
 const WINDOW_WIDTH: u32 = 800;
 const WINDOW_HEIGHT: u32 = 600;
 
@@ -53,6 +53,9 @@ impl Window {
                 ..
             } => match key.as_ref() {
                 Key::Named(NamedKey::Escape) => {
+                    elwt.exit();
+                },
+                Key::Character("q") => {
                     elwt.exit();
                 }
                 _ => {}

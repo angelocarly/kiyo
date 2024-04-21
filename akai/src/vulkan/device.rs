@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 use ash::khr::swapchain;
 use ash::vk;
 use crate::vulkan::Instance;
@@ -8,7 +8,7 @@ pub struct Device {
 }
 
 impl Device {
-    pub fn new(instance: Rc<Instance>, physical_device: vk::PhysicalDevice, queue_family_index: u32) -> Device {
+    pub fn new(instance: Arc<Instance>, physical_device: vk::PhysicalDevice, queue_family_index: u32) -> Device {
         let priorities = [1.0];
 
         let queue_info = vk::DeviceQueueCreateInfo::default()
