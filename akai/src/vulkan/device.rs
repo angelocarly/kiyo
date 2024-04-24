@@ -41,12 +41,15 @@ impl Device {
             device
         }
     }
+
+    pub fn get_vk_device(&self) -> &ash::Device {
+        &self.device
+    }
 }
 
 impl Drop for Device {
     fn drop(&mut self) {
         unsafe {
-            println!("Drop device");
             self.device.device_wait_idle().unwrap();
             self.device.destroy_device(None);
         }

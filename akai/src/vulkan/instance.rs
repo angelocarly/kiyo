@@ -92,7 +92,6 @@ impl Instance {
             .enabled_layer_names(&c_ptr_validation_layers)
             .flags(create_flags);
 
-        println!("Creating instance");
         let instance: ash::Instance = unsafe {
             entry
                 .create_instance(&create_info, None)
@@ -128,7 +127,7 @@ impl Instance {
         }
     }
 
-    pub fn create_physical_device(&self, surface: &Surface) -> (PhysicalDevice, u32) {
+    pub fn create_physical_device(&self, surface: Arc<Surface>) -> (PhysicalDevice, u32) {
         let physical_devices = unsafe {
             self.instance
                 .enumerate_physical_devices()
@@ -174,7 +173,6 @@ impl Instance {
 impl Drop for Instance {
     fn drop(&mut self) {
         unsafe {
-            println!("Drop instance");
             self.debug_utils
                 .destroy_debug_utils_messenger(self.debug_utils_messenger, None);
             self.instance.destroy_instance(None);

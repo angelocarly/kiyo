@@ -1,3 +1,4 @@
+use ash::vk::Extent2D;
 use winit::event::WindowEvent;
 use winit::event::{ElementState, KeyEvent};
 use winit::event_loop::{EventLoop, EventLoopWindowTarget};
@@ -31,6 +32,12 @@ impl Window {
 
     pub fn display_handle(&self) -> RawDisplayHandle {
         self.window.display_handle().unwrap().as_raw()
+    }
+
+    pub fn get_extent(&self) -> Extent2D {
+        let width = self.window.inner_size().width;
+        let height = self.window.inner_size().height;
+        Extent2D{ width, height }
     }
 
     pub fn window_event(&mut self, event: WindowEvent, elwt: &EventLoopWindowTarget<()>) {

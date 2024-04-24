@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use ash::khr::surface;
-use ash::vk::SurfaceKHR;
+use ash::vk;
+use ash::vk::{PresentModeKHR, SurfaceCapabilitiesKHR, SurfaceKHR};
 use crate::vulkan::Instance;
 use crate::window::Window;
 
@@ -35,6 +36,19 @@ impl Surface {
     pub fn get_vk_surface(&self) -> &SurfaceKHR {
         &self.surface
     }
+
+    pub fn get_formats(&self, physical_device: &vk::PhysicalDevice) -> Vec<vk::SurfaceFormatKHR> {
+        unsafe { self.surface_loader.get_physical_device_surface_formats(*physical_device, self.surface).unwrap() }
+    }
+
+    pub fn get_present_modes(&self, physical_device: &vk::PhysicalDevice) -> Vec<PresentModeKHR> {
+        unsafe { self.surface_loader.get_physical_device_surface_present_modes(*physical_device, self.surface).unwrap() }
+    }
+
+    pub fn get_surface_capabilities(&self, physical_device: &vk::PhysicalDevice) -> SurfaceCapabilitiesKHR {
+        unsafe { self.surface_loader.get_physical_device_surface_capabilities(*physical_device, self.surface).unwrap() }
+    }
+
 }
 
 impl Drop for Surface {
