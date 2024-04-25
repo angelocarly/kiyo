@@ -18,7 +18,8 @@ impl Swapchain {
         let surface_capabilities = surface.get_surface_capabilities(physical_device);
 
         let mut desired_image_count = surface_capabilities.min_image_count + 1;
-        if desired_image_count > surface_capabilities.max_image_count {
+        // Max image count can be 0
+        if surface_capabilities.max_image_count > 0 && desired_image_count > surface_capabilities.max_image_count {
             desired_image_count = surface_capabilities.max_image_count;
         }
 
