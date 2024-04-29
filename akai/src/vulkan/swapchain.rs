@@ -7,7 +7,9 @@ use crate::window::Window;
 
 pub struct Swapchain {
     swapchain_loader: swapchain::Device,
-    swapchain: vk::SwapchainKHR
+    swapchain: vk::SwapchainKHR,
+    _images: Vec<vk::Image>,
+    _image_views: Vec<vk::ImageView>,
 }
 
 impl Swapchain {
@@ -33,7 +35,7 @@ impl Swapchain {
         let present_mode = present_modes
             .iter()
             .cloned()
-            .find(|&mode| mode == vk::PresentModeKHR::MAILBOX )
+            .find(|&mode| mode == vk::PresentModeKHR::MAILBOX)
             .unwrap_or(vk::PresentModeKHR::FIFO);
 
         let surface_resolution = match surface_capabilities.current_extent.width {
@@ -57,9 +59,38 @@ impl Swapchain {
 
         let swapchain = unsafe { swapchain_loader.create_swapchain(&create_info, None).unwrap() };
 
+        let images = unsafe { swapchain_loader.get_swapchain_images(swapchain).unwrap() };
+
+        let mut image_views = Vec::new();
+        for &image in images.iter() {
+            let image_view_create_info = vk::ImageViewCreateInfo::default()
+                .flags(vk::ImageViewCreateFlags::empty())
+                .format(surface_format.format)
+                .view_type(vk::ImageViewType::TYPE_2D)
+                .components(vk::ComponentMapping {
+                    r: vk::ComponentSwizzle::IDENTITY,
+                    g: vk::ComponentSwizzle::IDENTITY,
+                    b: vk::ComponentSwizzle::IDENTITY,
+                    a: vk::ComponentSwizzle::IDENTITY,
+                })
+                .subresource_range(vk::ImageSubresourceRange {
+                    aspect_mask: vk::ImageAspectFlags::COLOR,
+                    base_mip_level: 0,
+                    level_count: 1,
+                    base_array_layer: 0,
+                    layer_count: 1,
+                })
+                .image(image);
+
+            let imageview = unsafe { device.get_vk_device().create_image_view(&image_view_create_info, None).unwrap() };
+            image_views.push(imageview);
+        }
+
         Self {
             swapchain_loader,
-            swapchain
+            swapchain,
+            _images: images,
+            _image_views: image_views
         }
     }
 }

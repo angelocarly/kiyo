@@ -8,6 +8,10 @@ This is my first serious try into combining Vulkan and Rust, for that reason I'l
 - Build a stable basis with ash. I'll get things wrong and inefficient ofc, but let's make those mistakes and improve on them.
 - Keep it fun and focus on art. Engine dev is cool af. But discipline and *relaxation* help eachother.
 
+I'm using the following repositories to kickstart this project. They might be helpful for you as well.
+- [vulkan-tutorial-rust](https://github.com/unknownue/vulkan-tutorial-rust)
+- [ash-example](https://github.com/ash-rs/ash/blob/master/ash-examples/src/lib.rs)
+
 ## Building & running
 
 Make sure you have the [Vulkan SDK](https://vulkan.lunarg.com) installed.  
