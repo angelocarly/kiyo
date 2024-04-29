@@ -6,6 +6,7 @@ use crate::vulkan::{Device, Instance, Surface};
 use crate::window::Window;
 
 pub struct Swapchain {
+    device: Arc<Device>,
     swapchain_loader: swapchain::Device,
     swapchain: vk::SwapchainKHR,
     _images: Vec<vk::Image>,
@@ -87,6 +88,7 @@ impl Swapchain {
         }
 
         Self {
+            device,
             swapchain_loader,
             swapchain,
             _images: images,
@@ -97,6 +99,11 @@ impl Swapchain {
 
 impl Drop for Swapchain {
     fn drop(&mut self) {
-        unsafe { self.swapchain_loader.destroy_swapchain(self.swapchain, None) }
+        unsafe {
+            for &image_view in self._image_views.iter() {
+                self.device.device.destroy_image_view(image_view, None);
+            }
+            self.swapchain_loader.destroy_swapchain(self.swapchain, None)
+        }
     }
 }
