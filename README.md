@@ -5,7 +5,7 @@ Generative art rendering library using [ash](https://github.com/ash-rs/ash).
 ## Philosophy
 
 Akai is meant to be an easily extendable graphics library. With a complexity somewhere in between the hand-holding of OpenGL and the pitfall of Vulkan.
-The goal is to have a library that is easy to use, but also allows for low-level control when necessary.
+The goal is to have an enjoyable home for graphic programming algorithms and techniques to grow.
 
 In order to reach this goal, I try to focus on the following:
 - Keep the library light, don't delve into heavy abstractions early on.
