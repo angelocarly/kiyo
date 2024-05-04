@@ -23,4 +23,8 @@ cargo run
 ```
 
 ## Libraries
-- [imgui-rs-vulkan-renderer](https://github.com/adrien-ben/imgui-rs-vulkan-renderer) - TODO: Investigate adding this library
+- [ash](https://github.com/ash-rs/ash) - Vulkan bindings
+- [winit](https://github.com/rust-windowing/winit) - Window creation and handling
+
+## Possible extensions
+- [imgui-rs-vulkan-renderer](https://github.com/adrien-ben/imgui-rs-vulkan-renderer) - Add imgui support.
