@@ -3,7 +3,7 @@ use ash::vk;
 use ash::vk::{PhysicalDevice};
 use winit::event::Event;
 use winit::event_loop::EventLoop;
-use crate::vulkan::{Device, GraphicsPipeline, Instance, Surface, Swapchain, RenderPass};
+use crate::vulkan::{Device, GraphicsPipeline, Instance, Surface, Swapchain, RenderPass, Framebuffer};
 use crate::window::Window;
 
 /// Generative art runtime.
@@ -33,7 +33,11 @@ impl Application {
 
         let swapchain = Arc::new(Swapchain::new(instance.clone(), &physical_device, device.clone(), &window, surface.clone()));
 
-        let render_pass = Arc::new(RenderPass::new(device.clone(), vk::Format::R8G8B8A8_SNORM));
+        let render_pass = Arc::new(RenderPass::new(device.clone(), vk::Format::R8G8B8A8_UNORM));
+
+        let _framebuffers = swapchain.clone().get_image_views().iter().map(|image_view| {
+            Arc::new(Framebuffer::new(device.clone(), swapchain.get_extent(), render_pass.clone(), vec![image_view.clone()]))
+        }).collect::<Vec<Arc<Framebuffer>>>();
 
         let _graphics_pipeline = Arc::new(GraphicsPipeline::new(device.clone(), render_pass.clone()));
 

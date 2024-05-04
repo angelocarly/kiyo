@@ -9,15 +9,23 @@ pub struct Swapchain {
     device: Arc<Device>,
     swapchain_loader: swapchain::Device,
     swapchain: vk::SwapchainKHR,
-    _images: Vec<vk::Image>,
-    _image_views: Vec<vk::ImageView>,
+    images: Vec<vk::Image>,
+    image_views: Vec<vk::ImageView>,
+    extent: vk::Extent2D,
 }
 
 impl Swapchain {
     pub fn new(instance: Arc<Instance>, physical_device: &vk::PhysicalDevice, device: Arc<Device>, window: &Window, surface: Arc<Surface>) -> Swapchain {
         let swapchain_loader = swapchain::Device::new(instance.get_vk_instance(), device.get_vk_device());
 
-        let surface_format = surface.get_formats(physical_device)[0];
+        let available_formats = surface.get_formats(physical_device);
+        let surface_format = available_formats.iter()
+            .find(|f| f == &&vk::SurfaceFormatKHR {
+                format: vk::Format::R8G8B8A8_UNORM,
+                color_space: vk::ColorSpaceKHR::SRGB_NONLINEAR,
+            })
+            .expect("No suitable surface format found.");
+
         let surface_capabilities = surface.get_surface_capabilities(physical_device);
 
         let mut desired_image_count = surface_capabilities.min_image_count + 1;
@@ -39,14 +47,14 @@ impl Swapchain {
             .find(|&mode| mode == vk::PresentModeKHR::MAILBOX)
             .unwrap_or(vk::PresentModeKHR::FIFO);
 
-        let surface_resolution = match surface_capabilities.current_extent.width {
+        let extent = match surface_capabilities.current_extent.width {
             u32::MAX => window.get_extent(),
             _ => surface_capabilities.current_extent
         };
 
         let create_info = vk::SwapchainCreateInfoKHR::default()
             .image_usage(ImageUsageFlags::COLOR_ATTACHMENT)
-            .image_extent(surface_resolution)
+            .image_extent(extent)
             .image_sharing_mode(SharingMode::EXCLUSIVE)
             .image_format(surface_format.format)
             .image_color_space(surface_format.color_space)
@@ -91,16 +99,29 @@ impl Swapchain {
             device,
             swapchain_loader,
             swapchain,
-            _images: images,
-            _image_views: image_views
+            images,
+            image_views,
+            extent
         }
+    }
+
+    pub fn get_images(&self) -> &Vec<vk::Image> {
+        &self.images
+    }
+
+    pub fn get_image_views(&self) -> &Vec<vk::ImageView> {
+        &self.image_views
+    }
+
+    pub fn get_extent(&self) -> vk::Extent2D {
+        self.extent
     }
 }
 
 impl Drop for Swapchain {
     fn drop(&mut self) {
         unsafe {
-            for &image_view in self._image_views.iter() {
+            for &image_view in self.image_views.iter() {
                 self.device.device.destroy_image_view(image_view, None);
             }
             self.swapchain_loader.destroy_swapchain(self.swapchain, None)

@@ -4,6 +4,7 @@ use crate::vulkan::Device;
 
 pub struct RenderPass {
     pub renderpass: vk::RenderPass,
+    pub device: Arc<Device>,
 }
 
 impl RenderPass {
@@ -41,11 +42,20 @@ impl RenderPass {
         };
 
         RenderPass {
+            device,
             renderpass
         }
     }
 
     pub fn get_vk_render_pass(&self) -> vk::RenderPass {
         self.renderpass
+    }
+}
+
+impl Drop for RenderPass {
+    fn drop(&mut self) {
+        unsafe {
+            self.device.device.destroy_render_pass(self.renderpass, None);
+        }
     }
 }
