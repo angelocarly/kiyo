@@ -29,6 +29,10 @@ The repository is still in a setup state. The following steps are necessary to g
  
 Once the basic engine skeleton is set up, then child projects can be started to experiment with adding new functionality to Akai.
 
+Examples of future functionality:
+- A simple GUI library. For example with [imgui-rs-vulkan-renderer](https://github.com/adrien-ben/imgui-rs-vulkan-renderer).
+- An integrated deferred rendering system.
+
 ## Building & running
 
 Make sure you have the [Vulkan SDK](https://vulkan.lunarg.com) installed.  
@@ -44,4 +48,4 @@ cargo run
 - [winit](https://github.com/rust-windowing/winit) - Window creation and handling
 
 ## Possible extensions
-- [imgui-rs-vulkan-renderer](https://github.com/adrien-ben/imgui-rs-vulkan-renderer) - Add imgui support.
+
