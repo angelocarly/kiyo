@@ -9,8 +9,8 @@ use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawDisplayHand
 /// Handles window events i.e. close, redraw, keyboard input.
 pub struct Window {
     window: winit::window::Window,
-    redraw_requested: bool,
 }
+
 
 impl Window {
     pub fn create(event_loop: &EventLoop<()>, window_title: &str, width: u32, height: u32) -> Window {
@@ -21,7 +21,6 @@ impl Window {
             .expect("Failed to create window.");
 
         Window {
-            redraw_requested: false,
             window,
         }
     }
@@ -44,9 +43,6 @@ impl Window {
         match event {
             WindowEvent::CloseRequested => {
                 elwt.exit();
-            }
-            WindowEvent::RedrawRequested => {
-                self.redraw_requested = true;
             }
             WindowEvent::KeyboardInput {
                 event:

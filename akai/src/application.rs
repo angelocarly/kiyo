@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use ash::vk;
 use ash::vk::{PhysicalDevice};
-use winit::event::Event;
+use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoop;
 use crate::vulkan::{Device, GraphicsPipeline, Instance, Surface, Swapchain, RenderPass, Framebuffer, CommandPool, CommandBuffer};
 use crate::window::Window;
@@ -18,6 +18,10 @@ pub struct Application {
     pub device: Arc<Device>,
     pub physical_device: PhysicalDevice,
     pub instance: Arc<Instance>,
+    pub framebuffers: Vec<Arc<Framebuffer>>,
+    pub command_pool: Arc<CommandPool>,
+    pub command_buffer: Arc<CommandBuffer>,
+    pub graphics_pipeline: Arc<GraphicsPipeline>,
 }
 
 impl Application {
@@ -35,14 +39,14 @@ impl Application {
 
         let render_pass = Arc::new(RenderPass::new(device.clone(), vk::Format::R8G8B8A8_UNORM));
 
-        let _framebuffers = swapchain.clone().get_image_views().iter().map(|image_view| {
+        let framebuffers = swapchain.clone().get_image_views().iter().map(|image_view| {
             Arc::new(Framebuffer::new(device.clone(), swapchain.get_extent(), render_pass.clone(), vec![image_view.clone()]))
         }).collect::<Vec<Arc<Framebuffer>>>();
 
-        let _graphics_pipeline = Arc::new(GraphicsPipeline::new(device.clone(), render_pass.clone()));
-
         let command_pool = Arc::new(CommandPool::new(device.clone(), queue_family_index));
-        let _command_buffer = Arc::new(CommandBuffer::new(device.clone(), command_pool.clone()));
+        let command_buffer = Arc::new(CommandBuffer::new(device.clone(), command_pool.clone()));
+
+        let graphics_pipeline = Arc::new(GraphicsPipeline::new(device.clone(), render_pass.clone()));
 
         Self {
             event_loop,
@@ -52,14 +56,36 @@ impl Application {
             surface,
             physical_device,
             device,
-            swapchain
+            swapchain,
+            framebuffers,
+            command_pool,
+            command_buffer,
+            graphics_pipeline,
         }
+    }
+
+    fn draw_frame() {
+
     }
 
     pub fn run(mut self) {
         self.event_loop
-            .run(|event, elwt| if let Event::WindowEvent { event, .. } = event {
-                self.window.window_event(event, elwt);
+            .run(|event, elwt| {
+
+                match event {
+                    | Event::WindowEvent { event, .. } => {
+                        self.window.window_event( event.clone(), elwt );
+
+                        match event {
+                            WindowEvent::RedrawRequested => {
+                                Self::draw_frame();
+                            },
+                            _ => (),
+                        }
+                    }
+                    _ => (),
+                }
+
             })
             .unwrap()
     }
