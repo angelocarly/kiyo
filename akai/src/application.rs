@@ -1,8 +1,9 @@
 use std::sync::Arc;
-use ash::vk::PhysicalDevice;
+use ash::vk;
+use ash::vk::{PhysicalDevice};
 use winit::event::Event;
 use winit::event_loop::EventLoop;
-use crate::vulkan::{Device, GraphicsPipeline, Instance, Surface, Swapchain};
+use crate::vulkan::{Device, GraphicsPipeline, Instance, Surface, Swapchain, RenderPass};
 use crate::window::Window;
 
 /// Generative art runtime.
@@ -32,7 +33,9 @@ impl Application {
 
         let swapchain = Arc::new(Swapchain::new(instance.clone(), &physical_device, device.clone(), &window, surface.clone()));
 
-        let graphics_pipeline = Arc::new(GraphicsPipeline::new(device.clone()));
+        let render_pass = Arc::new(RenderPass::new(device.clone(), vk::Format::R8G8B8A8_SNORM));
+
+        let _graphics_pipeline = Arc::new(GraphicsPipeline::new(device.clone(), render_pass.clone()));
 
         Self {
             event_loop,
