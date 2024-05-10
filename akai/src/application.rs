@@ -1,8 +1,9 @@
 use std::sync::Arc;
 use ash::vk;
-use ash::vk::{PhysicalDevice};
+use ash::vk::{PhysicalDevice, Queue};
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoop;
+use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
 use crate::vulkan::{Device, GraphicsPipeline, Instance, Surface, Swapchain, RenderPass, Framebuffer, CommandPool, CommandBuffer};
 use crate::window::Window;
 
@@ -10,8 +11,6 @@ use crate::window::Window;
 /// Manages the window and graphics recording.
 pub struct Application {
     pub swapchain: Arc<Swapchain>,
-
-    pub event_loop: EventLoop<()>,
     pub window: Window,
     pub entry: Arc<ash::Entry>,
     pub surface: Arc<Surface>,
@@ -22,18 +21,19 @@ pub struct Application {
     pub command_pool: Arc<CommandPool>,
     pub command_buffer: Arc<CommandBuffer>,
     pub graphics_pipeline: Arc<GraphicsPipeline>,
+    pub queue: Queue,
 }
 
 impl Application {
-    pub fn new(window_title: &str, width: u32, height: u32) -> Application {
-        let event_loop = EventLoop::new().expect("Failed to create event loop.");
-        let window = Window::create(&event_loop, window_title, width, height);
+    pub fn new(event_loop: &EventLoop<()>, window_title: &str, width: u32, height: u32) -> Application {
+    let window = Window::create(&event_loop, window_title, width, height);
 
         let entry = Arc::new(ash::Entry::linked());
         let instance = Arc::new(Instance::new(entry.clone(), window.display_handle()));
         let surface = Arc::new(Surface::new(instance.clone(), &window));
         let (physical_device, queue_family_index) = instance.create_physical_device(surface.clone());
         let device = Arc::new(Device::new(instance.clone(), physical_device, queue_family_index));
+        let queue = device.get_queue(0);
 
         let swapchain = Arc::new(Swapchain::new(instance.clone(), &physical_device, device.clone(), &window, surface.clone()));
 
@@ -49,12 +49,12 @@ impl Application {
         let graphics_pipeline = Arc::new(GraphicsPipeline::new(device.clone(), render_pass.clone()));
 
         Self {
-            event_loop,
             window,
             entry,
             instance,
             surface,
             physical_device,
+            queue,
             device,
             swapchain,
             framebuffers,
@@ -64,13 +64,17 @@ impl Application {
         }
     }
 
-    fn draw_frame() {
+    fn draw_frame(&mut self) {
+
+        let fence_create_info = vk::FenceCreateInfo::default();
+        let fence = unsafe { self.device.get_vk_device().create_fence(&fence_create_info, None) }.unwrap();
+        self.device.submit_command_buffer(self.queue, fence, self.command_buffer.get_vk_command_buffer());
 
     }
 
-    pub fn run(mut self) {
-        self.event_loop
-            .run(|event, elwt| {
+    pub fn run(mut self, event_loop: EventLoop<()>) {
+        event_loop
+            .run(move |event, elwt| {
 
                 match event {
                     | Event::WindowEvent { event, .. } => {
@@ -78,7 +82,7 @@ impl Application {
 
                         match event {
                             WindowEvent::RedrawRequested => {
-                                Self::draw_frame();
+                                self.draw_frame();
                             },
                             _ => (),
                         }
@@ -88,11 +92,5 @@ impl Application {
 
             })
             .unwrap()
-    }
-}
-
-impl Default for Application {
-    fn default() -> Self {
-        Self::new("Akai engine", 800, 600)
     }
 }

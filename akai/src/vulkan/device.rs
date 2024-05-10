@@ -1,11 +1,13 @@
 use std::sync::Arc;
 use ash::khr::swapchain;
 use ash::vk;
+use ash::vk::Queue;
 use crate::vulkan::Instance;
 
 /// A connection to a physical GPU.
 pub struct Device {
     pub device: ash::Device,
+    pub queue_family_index: u32,
 }
 
 impl Device {
@@ -38,12 +40,26 @@ impl Device {
         }.unwrap();
 
         Self {
-            device
+            device,
+            queue_family_index
         }
     }
 
     pub fn get_vk_device(&self) -> &ash::Device {
         &self.device
+    }
+
+    pub fn get_queue(&self, queue_index: u32) -> Queue {
+        unsafe { self.device.get_device_queue(self.queue_family_index, queue_index) }
+    }
+
+    pub fn submit_command_buffer(&self, queue: vk::Queue, fence: vk::Fence, command_buffer: vk::CommandBuffer) {
+        let command_buffers = [command_buffer];
+        let submit_info = vk::SubmitInfo::default()
+            .command_buffers(&command_buffers);
+        let submits = [submit_info];
+
+        unsafe { self.device.queue_submit(queue, &submits, fence).unwrap(); }
     }
 }
 
