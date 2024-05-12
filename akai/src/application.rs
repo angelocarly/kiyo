@@ -83,9 +83,13 @@ impl Application {
 
     fn draw_frame(&mut self) {
 
+        let index = self.swapchain.acquire_next_image();
+
         let fence_create_info = vk::FenceCreateInfo::default();
         let fence = unsafe { self.device.get_vk_device().create_fence(&fence_create_info, None) }.unwrap();
         self.device.submit_command_buffer(self.queue, fence, self.command_buffer.get_vk_command_buffer());
+
+        self.swapchain.queue_present(self.queue);
 
     }
 

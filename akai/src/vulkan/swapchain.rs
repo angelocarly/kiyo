@@ -118,6 +118,39 @@ impl Swapchain {
     pub fn get_extent(&self) -> vk::Extent2D {
         self.extent
     }
+
+    /// Queue an image for presentation.
+    ///
+    /// https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkQueuePresentKHR.html
+    pub fn queue_present(&self, queue: vk::Queue) {
+        unsafe {
+            let swapchains = [self.swapchain];
+            let indices = [0];
+            let present_info = vk::PresentInfoKHR::default()
+                .swapchains(&swapchains)
+                .image_indices(&indices);
+            self.swapchain_loader.queue_present(queue, &present_info)
+                .expect("Failed to present queue");
+        }
+    }
+
+    /// Acquire the next image in the swapchain.
+    /// * `semaphore` - A semaphore to signal when the image is available.
+    ///
+    /// https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkAcquireNextImageKHR.html
+    pub fn acquire_next_image(&self, semaphore: vk::Semaphore) -> u32 {
+        unsafe {
+            let (image_index, _) = self.swapchain_loader
+                .acquire_next_image(
+                    self.swapchain,
+                    u64::MAX,
+                    semaphore,
+                    vk::Fence::null()
+                )
+                .expect("Failed to acquire next image");
+            image_index
+        }
+    }
 }
 
 impl Drop for Swapchain {
