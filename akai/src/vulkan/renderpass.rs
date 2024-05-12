@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use ash::{vk};
-use crate::vulkan::Device;
+use crate::vulkan::{Device};
 
 pub struct RenderPass {
     pub renderpass: vk::RenderPass,
@@ -50,6 +50,7 @@ impl RenderPass {
     pub fn get_vk_render_pass(&self) -> vk::RenderPass {
         self.renderpass
     }
+
 }
 
 impl Drop for RenderPass {

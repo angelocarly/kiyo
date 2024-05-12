@@ -5,6 +5,8 @@ use ash::vk::{CompositeAlphaFlagsKHR, ImageUsageFlags, SharingMode};
 use crate::vulkan::{Device, Instance, Surface};
 use crate::window::Window;
 
+/// Vulkan does not have a concept of a "default framebuffer". Instead, we need a framework that "owns" the images that will eventually be presented to the screen.
+/// The general purpose of the swapchain is to synchronize the presentation of images with the refresh rate of the screen.
 pub struct Swapchain {
     device: Arc<Device>,
     swapchain_loader: swapchain::Device,

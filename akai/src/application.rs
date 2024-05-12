@@ -22,9 +22,12 @@ pub struct Application {
     pub command_buffer: Arc<CommandBuffer>,
     pub graphics_pipeline: Arc<GraphicsPipeline>,
     pub queue: Queue,
+    pub render_pass: Arc<RenderPass>,
 }
 
 impl Application {
+
+
     pub fn new(event_loop: &EventLoop<()>, window_title: &str, width: u32, height: u32) -> Application {
     let window = Window::create(&event_loop, window_title, width, height);
 
@@ -48,6 +51,8 @@ impl Application {
 
         let graphics_pipeline = Arc::new(GraphicsPipeline::new(device.clone(), render_pass.clone()));
 
+        Application::record_command_buffer(command_buffer.clone(), render_pass.clone(), &framebuffers.clone());
+
         Self {
             window,
             entry,
@@ -57,12 +62,24 @@ impl Application {
             queue,
             device,
             swapchain,
+            render_pass,
             framebuffers,
             command_pool,
             command_buffer,
             graphics_pipeline,
         }
     }
+
+    fn record_command_buffer(command_buffer: Arc<CommandBuffer>, render_pass: Arc<RenderPass>, framebuffers: &Vec<Arc<Framebuffer>>) {
+
+        command_buffer.begin();
+        command_buffer.begin_render_pass(render_pass.clone(), framebuffers[0].clone());
+        command_buffer.end_render_pass(command_buffer.clone());
+        command_buffer.end();
+
+        // Swapchain update
+    }
+
 
     fn draw_frame(&mut self) {
 

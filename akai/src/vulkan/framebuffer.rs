@@ -1,10 +1,12 @@
 use std::sync::Arc;
 use ash::vk;
+use ash::vk::Extent2D;
 use crate::vulkan::{Device, RenderPass};
 
 pub struct Framebuffer {
     pub framebuffer: vk::Framebuffer,
     pub device: Arc<Device>,
+    pub extent: Extent2D,
 }
 
 impl Framebuffer {
@@ -25,8 +27,17 @@ impl Framebuffer {
 
         Framebuffer {
             device,
-            framebuffer
+            framebuffer,
+            extent
         }
+    }
+
+    pub fn get_vk_framebuffer(&self) -> vk::Framebuffer {
+        self.framebuffer
+    }
+
+    pub fn get_extent(&self) -> vk::Extent2D {
+        self.extent
     }
 }
 
