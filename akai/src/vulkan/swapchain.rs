@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use ash::khr::swapchain;
 use ash::vk;
-use ash::vk::{CompositeAlphaFlagsKHR, ImageUsageFlags, SharingMode};
+use ash::vk::{CompositeAlphaFlagsKHR, ImageUsageFlags, SharingMode, SurfaceFormatKHR};
 use crate::vulkan::{Device, Instance, Surface};
 use crate::window::Window;
 
@@ -14,6 +14,7 @@ pub struct Swapchain {
     images: Vec<vk::Image>,
     image_views: Vec<vk::ImageView>,
     extent: vk::Extent2D,
+    format: SurfaceFormatKHR
 }
 
 impl Swapchain {
@@ -26,7 +27,9 @@ impl Swapchain {
                 format: vk::Format::R8G8B8A8_UNORM,
                 color_space: vk::ColorSpaceKHR::SRGB_NONLINEAR,
             })
-            .expect("No suitable surface format found.");
+            .unwrap_or(available_formats.first().expect("No surface format found"));
+
+        println!("Using surface format: {:?}", surface_format);
 
         let surface_capabilities = surface.get_surface_capabilities(physical_device);
 
@@ -103,7 +106,8 @@ impl Swapchain {
             swapchain,
             images,
             image_views,
-            extent
+            extent,
+            format: *surface_format
         }
     }
 
@@ -119,13 +123,17 @@ impl Swapchain {
         self.extent
     }
 
+    pub fn get_format(&self) -> SurfaceFormatKHR {
+        self.format
+    }
+
     /// Queue an image for presentation.
     ///
     /// https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkQueuePresentKHR.html
-    pub fn queue_present(&self, queue: vk::Queue) {
+    pub fn queue_present(&self, queue: vk::Queue, index: u32) {
         unsafe {
             let swapchains = [self.swapchain];
-            let indices = [0];
+            let indices = [index];
             let present_info = vk::PresentInfoKHR::default()
                 .swapchains(&swapchains)
                 .image_indices(&indices);

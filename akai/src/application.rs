@@ -3,13 +3,18 @@ use ash::vk;
 use ash::vk::{PhysicalDevice, Queue};
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoop;
-use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
 use crate::vulkan::{Device, GraphicsPipeline, Instance, Surface, Swapchain, RenderPass, Framebuffer, CommandPool, CommandBuffer};
 use crate::window::Window;
 
 /// Generative art runtime.
 /// Manages the window and graphics recording.
 pub struct Application {
+    pub graphics_pipeline: Arc<GraphicsPipeline>,
+    pub render_pass: Arc<RenderPass>,
+    pub command_buffer: Arc<CommandBuffer>,
+    pub command_pool: Arc<CommandPool>,
+    pub queue: Queue,
+    pub framebuffers: Vec<Arc<Framebuffer>>,
     pub swapchain: Arc<Swapchain>,
     pub window: Window,
     pub entry: Arc<ash::Entry>,
@@ -17,12 +22,6 @@ pub struct Application {
     pub device: Arc<Device>,
     pub physical_device: PhysicalDevice,
     pub instance: Arc<Instance>,
-    pub framebuffers: Vec<Arc<Framebuffer>>,
-    pub command_pool: Arc<CommandPool>,
-    pub command_buffer: Arc<CommandBuffer>,
-    pub graphics_pipeline: Arc<GraphicsPipeline>,
-    pub queue: Queue,
-    pub render_pass: Arc<RenderPass>,
 }
 
 impl Application {
@@ -40,7 +39,7 @@ impl Application {
 
         let swapchain = Arc::new(Swapchain::new(instance.clone(), &physical_device, device.clone(), &window, surface.clone()));
 
-        let render_pass = Arc::new(RenderPass::new(device.clone(), vk::Format::R8G8B8A8_UNORM));
+        let render_pass = Arc::new(RenderPass::new(device.clone(), swapchain.get_format().format));
 
         let framebuffers = swapchain.clone().get_image_views().iter().map(|image_view| {
             Arc::new(Framebuffer::new(device.clone(), swapchain.get_extent(), render_pass.clone(), vec![image_view.clone()]))
@@ -83,13 +82,15 @@ impl Application {
 
     fn draw_frame(&mut self) {
 
-        let index = self.swapchain.acquire_next_image();
+        let index = self.swapchain.acquire_next_image(Default::default());
 
         let fence_create_info = vk::FenceCreateInfo::default();
         let fence = unsafe { self.device.get_vk_device().create_fence(&fence_create_info, None) }.unwrap();
         self.device.submit_command_buffer(self.queue, fence, self.command_buffer.get_vk_command_buffer());
 
-        self.swapchain.queue_present(self.queue);
+        self.swapchain.queue_present(self.queue, index);
+
+        unsafe { self.device.get_vk_device().destroy_fence(fence, None); }
 
     }
 
@@ -113,5 +114,13 @@ impl Application {
 
             })
             .unwrap()
+    }
+}
+
+impl Drop for Application {
+    fn drop(&mut self) {
+        unsafe {
+            self.device.get_vk_device().device_wait_idle().unwrap();
+        }
     }
 }
