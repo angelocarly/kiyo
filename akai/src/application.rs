@@ -127,10 +127,10 @@ impl Application {
 
     fn draw_frame(&mut self) {
 
+        println!("Acquiring swapchain image");
         let index = self.swapchain.acquire_next_image(self.semaphores[0]);
 
-        println!("Drawing frame with swapchain image {}", index);
-
+        println!("Presenting swapchain image {}", index);
         self.swapchain.queue_present(self.queue, self.semaphores[0], index);
 
     }
