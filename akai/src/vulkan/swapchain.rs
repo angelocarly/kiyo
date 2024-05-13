@@ -130,11 +130,13 @@ impl Swapchain {
     /// Queue an image for presentation.
     ///
     /// https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkQueuePresentKHR.html
-    pub fn queue_present(&self, queue: vk::Queue, index: u32) {
+    pub fn queue_present(&self, queue: vk::Queue, semaphore: vk::Semaphore, index: u32) {
         unsafe {
             let swapchains = [self.swapchain];
             let indices = [index];
+            let semaphores = [semaphore];
             let present_info = vk::PresentInfoKHR::default()
+                .wait_semaphores(&semaphores)
                 .swapchains(&swapchains)
                 .image_indices(&indices);
             self.swapchain_loader.queue_present(queue, &present_info)

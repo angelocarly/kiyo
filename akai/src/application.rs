@@ -11,6 +11,7 @@ use crate::window::Window;
 pub struct Application {
     pub graphics_pipeline: Arc<GraphicsPipeline>,
     pub render_pass: Arc<RenderPass>,
+    pub semaphores: Vec<vk::Semaphore>,
     pub command_buffer: Arc<CommandBuffer>,
     pub command_pool: Arc<CommandPool>,
     pub queue: Queue,
@@ -47,6 +48,11 @@ impl Application {
 
         let command_pool = Arc::new(CommandPool::new(device.clone(), queue_family_index));
         let command_buffer = Arc::new(CommandBuffer::new(device.clone(), command_pool.clone()));
+        let semaphores = swapchain.clone().get_image_views().iter().map(|_| unsafe {
+            let semaphore_create_info = vk::SemaphoreCreateInfo::default();
+            device.get_vk_device().create_semaphore(&semaphore_create_info, None)
+                .expect("Failed to create semaphore")
+        }).collect::<Vec<vk::Semaphore>>();
 
         let graphics_pipeline = Arc::new(GraphicsPipeline::new(device.clone(), render_pass.clone()));
 
@@ -63,6 +69,7 @@ impl Application {
             swapchain,
             render_pass,
             framebuffers,
+            semaphores,
             command_pool,
             command_buffer,
             graphics_pipeline,
@@ -82,18 +89,11 @@ impl Application {
 
     fn draw_frame(&mut self) {
 
-        let index = self.swapchain.acquire_next_image(Default::default());
+        let index = self.swapchain.acquire_next_image(self.semaphores[0]);
 
-        let fence_create_info = vk::FenceCreateInfo::default();
-        let fence = unsafe { self.device.get_vk_device().create_fence(&fence_create_info, None) }.unwrap();
-        self.device.submit_command_buffer(self.queue, fence, self.command_buffer.get_vk_command_buffer());
+        println!("Drawing frame with swapchain image {}", index);
 
-        self.swapchain.queue_present(self.queue, index);
-
-        unsafe {
-            self.device.get_vk_device().device_wait_idle();
-            self.device.get_vk_device().destroy_fence(fence, None);
-        }
+        self.swapchain.queue_present(self.queue, self.semaphores[0], index);
 
     }
 
@@ -124,6 +124,9 @@ impl Drop for Application {
     fn drop(&mut self) {
         unsafe {
             self.device.get_vk_device().device_wait_idle().unwrap();
+            for semaphore in &self.semaphores {
+                self.device.get_vk_device().destroy_semaphore(*semaphore, None);
+            }
         }
     }
 }

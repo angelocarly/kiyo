@@ -53,10 +53,12 @@ impl Device {
         unsafe { self.device.get_device_queue(self.queue_family_index, queue_index) }
     }
 
-    pub fn submit_command_buffer(&self, queue: vk::Queue, fence: vk::Fence, command_buffer: vk::CommandBuffer) {
+    pub fn submit_command_buffer(&self, queue: vk::Queue, fence: vk::Fence, semaphore: vk::Semaphore, command_buffer: vk::CommandBuffer) {
         let command_buffers = [command_buffer];
+        let semaphores = [semaphore];
         let submit_info = vk::SubmitInfo::default()
-            .command_buffers(&command_buffers);
+            .command_buffers(&command_buffers)
+            .wait_semaphores(&semaphores);
         let submits = [submit_info];
 
         unsafe { self.device.queue_submit(queue, &submits, fence).unwrap(); }
