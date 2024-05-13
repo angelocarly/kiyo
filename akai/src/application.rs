@@ -90,7 +90,10 @@ impl Application {
 
         self.swapchain.queue_present(self.queue, index);
 
-        unsafe { self.device.get_vk_device().destroy_fence(fence, None); }
+        unsafe {
+            self.device.get_vk_device().device_wait_idle();
+            self.device.get_vk_device().destroy_fence(fence, None);
+        }
 
     }
 
