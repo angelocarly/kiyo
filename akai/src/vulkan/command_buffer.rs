@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use ash::vk;
-use crate::vulkan::{CommandPool, Device, Framebuffer, RenderPass};
+use ash::vk::PipelineBindPoint;
+use crate::vulkan::{CommandPool, Device, Framebuffer, GraphicsPipeline, RenderPass};
 
 pub struct CommandBuffer {
     device: Arc<Device>,
@@ -52,7 +53,7 @@ impl CommandBuffer {
             })
             .clear_values(&[vk::ClearValue {
                 color: vk::ClearColorValue {
-                    float32: [1.0, 0.0, 0.0, 1.0],
+                    float32: [0.0, 0.0, 0.0, 1.0],
                 },
             }])
             .render_pass(render_pass.get_vk_render_pass())
@@ -63,10 +64,17 @@ impl CommandBuffer {
         }
     }
 
-    pub fn end_render_pass(&self, command_buffer: Arc<CommandBuffer>) {
+    pub fn end_render_pass(&self) {
         unsafe {
             self.device.get_vk_device()
-                .cmd_end_render_pass(command_buffer.get_vk_command_buffer());
+                .cmd_end_render_pass(self.command_buffer);
+        }
+    }
+
+    pub fn bind_pipeline(&self, pipeline: Arc<GraphicsPipeline>) {
+        unsafe {
+            self.device.get_vk_device()
+                .cmd_bind_pipeline(self.command_buffer, PipelineBindPoint::GRAPHICS, pipeline.graphics_pipeline);
         }
     }
     pub fn get_vk_command_buffer(&self) -> vk::CommandBuffer {

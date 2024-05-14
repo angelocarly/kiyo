@@ -135,7 +135,20 @@ impl Application {
 
         command_buffer.begin();
         command_buffer.begin_render_pass(self.render_pass.clone(), framebuffer.clone());
-        command_buffer.end_render_pass(command_buffer.clone());
+        {
+            command_buffer.bind_pipeline(self.graphics_pipeline.clone());
+            unsafe {
+                self.device.get_vk_device()
+                    .cmd_draw(
+                        command_buffer.get_vk_command_buffer(),
+                        3,
+                        1,
+                        0,
+                        0
+                    )
+            };
+        }
+        command_buffer.end_render_pass();
         command_buffer.end();
     }
 
