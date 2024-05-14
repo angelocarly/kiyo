@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use ash::khr::swapchain;
 use ash::vk;
-use ash::vk::Queue;
-use crate::vulkan::Instance;
+use ash::vk::{PipelineStageFlags, Queue};
+use crate::vulkan::{CommandBuffer, Instance};
 
 /// A connection to a physical GPU.
 pub struct Device {
@@ -53,13 +53,79 @@ impl Device {
         unsafe { self.device.get_device_queue(self.queue_family_index, queue_index) }
     }
 
-    pub fn submit_command_buffer(&self, queue: vk::Queue, fence: vk::Fence, command_buffer: vk::CommandBuffer) {
-        let command_buffers = [command_buffer];
-        let submit_info = vk::SubmitInfo::default()
-            .command_buffers(&command_buffers);
-        let submits = [submit_info];
+    pub fn wait_for_fence(&self, fence: vk::Fence) {
+        unsafe {
+            let fences = [fence];
+            self.device
+                .wait_for_fences(&fences, true, u64::MAX)
+                .expect("Failed to destroy fence");
+        }
+    }
 
-        unsafe { self.device.queue_submit(queue, &submits, fence).unwrap(); }
+    pub fn reset_fence(&self, fence: vk::Fence) {
+        unsafe {
+            let fences = [fence];
+            self.device
+                .reset_fences(&fences)
+                .unwrap()
+        }
+    }
+
+    pub fn submit_single_time_command(
+        &self,
+        queue: Queue,
+        command_buffer: Arc<CommandBuffer>
+    ) {
+        unsafe {
+            let command_buffers = [command_buffer.get_vk_command_buffer()];
+            let submit_info = vk::SubmitInfo::default()
+                .command_buffers(&command_buffers);
+
+            let fence_create_info = vk::FenceCreateInfo::default();
+            let fence = self.device
+                    .create_fence(&fence_create_info, None)
+                    .expect("Failed to create fence");
+
+            let submits = [submit_info];
+            self.device.queue_submit(queue, &submits, fence).unwrap();
+
+            self.wait_for_fence(fence);
+
+            self.device
+                .destroy_fence(fence, None);
+        }
+    }
+
+    /// Submit a command buffer for execution
+    ///
+    /// - `wait_semaphore` - A semaphore to wait on before execution.
+    /// - `signal_semaphore` - A semaphore to signal after execution.
+    /// - `fence` - A fence to signal once the commandbuffer has finished execution.
+    ///
+    /// https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkQueueSubmit.html
+    pub fn submit_command_buffer(
+        &self,
+        queue: &Queue,
+        fence: vk::Fence,
+        wait_semaphore: vk::Semaphore,
+        signal_semaphore: vk::Semaphore,
+        command_buffer: Arc<CommandBuffer>
+    ) {
+        let command_buffers = [command_buffer.get_vk_command_buffer()];
+        let mut submit_info = vk::SubmitInfo::default()
+            .command_buffers(&command_buffers);
+
+        let wait_semaphores = [wait_semaphore];
+        let signal_semaphores = [signal_semaphore];
+        let wait_dst_stage_masks = [PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
+
+        submit_info = submit_info
+            .wait_semaphores(&wait_semaphores)
+            .signal_semaphores(&signal_semaphores)
+            .wait_dst_stage_mask(&wait_dst_stage_masks);
+
+        let submits = [submit_info];
+        unsafe { self.device.queue_submit(*queue, &submits, fence).unwrap(); }
     }
 }
 

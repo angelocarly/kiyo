@@ -128,6 +128,9 @@ impl GraphicsPipeline {
                 .expect("Failed to create graphics pipeline")[0]
         };
 
+        unsafe { device.get_vk_device().destroy_shader_module(fragment_shader_module, None); }
+        unsafe { device.get_vk_device().destroy_shader_module(vertex_shader_module, None); }
+
         Self {
             device,
             pipeline_layout,
