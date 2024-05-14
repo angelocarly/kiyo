@@ -141,18 +141,13 @@ impl Application {
 
     fn draw_frame(&mut self) {
 
-        println!("Draw frame, frame_index: {}", self.frame_index);
-
         // Wait for the corresponding command buffer to finish executing.
         self.device.wait_for_fence(self.in_flight_fences[self.frame_index]);
 
-        println!("Acquiring swapchain image");
         let index = self.swapchain.acquire_next_image(self.image_available_semaphores[self.frame_index]) as usize;
 
-        println!("Recording command buffer");
-        self.record_command_buffer(self.command_buffers[self.frame_index].clone(), self.framebuffers[self.frame_index].clone());
+        self.record_command_buffer(self.command_buffers[self.frame_index].clone(), self.framebuffers[index].clone());
 
-        println!("Submitting command buffer");
         self.device.reset_fence(self.in_flight_fences[self.frame_index]);
         self.device.submit_command_buffer(
             &self.queue,
@@ -162,7 +157,6 @@ impl Application {
             self.command_buffers[self.frame_index].clone()
         );
 
-        println!("Presenting swapchain image {}", self.frame_index);
         self.swapchain.queue_present(
             self.queue,
             self.render_finished_semaphores[self.frame_index],
