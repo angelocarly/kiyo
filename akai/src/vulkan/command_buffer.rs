@@ -52,7 +52,7 @@ impl CommandBuffer {
             })
             .clear_values(&[vk::ClearValue {
                 color: vk::ClearColorValue {
-                    float32: [0.0, 0.0, 0.0, 1.0],
+                    float32: [1.0, 0.0, 0.0, 1.0],
                 },
             }])
             .render_pass(render_pass.get_vk_render_pass())

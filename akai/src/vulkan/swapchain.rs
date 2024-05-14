@@ -129,6 +129,7 @@ impl Swapchain {
 
     /// Queue an image for presentation.
     ///
+    /// - `semaphore` - A semapore to wait on before issuing the present info.
     /// https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkQueuePresentKHR.html
     pub fn queue_present(&self, queue: vk::Queue, semaphore: vk::Semaphore, index: u32) {
         unsafe {
