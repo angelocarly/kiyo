@@ -134,6 +134,25 @@ impl Application {
     fn record_command_buffer(&mut self, command_buffer: Arc<CommandBuffer>, framebuffer: Arc<Framebuffer>) {
 
         command_buffer.begin();
+
+        // Dynamic state
+        command_buffer.set_scissor(
+            vk::Rect2D {
+                offset: vk::Offset2D { x: 0, y: 0 },
+                extent: self.swapchain.get_extent(),
+            }
+        );
+        command_buffer.set_viewport(
+            vk::Viewport {
+                x: 0.0,
+                y: 0.0,
+                width: self.swapchain.get_extent().width as f32,
+                height: self.swapchain.get_extent().height as f32,
+                min_depth: 0.0,
+                max_depth: 1.0,
+            }
+        );
+
         command_buffer.begin_render_pass(self.render_pass.clone(), framebuffer.clone());
         {
             command_buffer.bind_pipeline(self.graphics_pipeline.clone());

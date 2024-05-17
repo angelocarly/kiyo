@@ -81,7 +81,7 @@ impl GraphicsPipeline {
         let rasterization_state = vk::PipelineRasterizationStateCreateInfo::default()
             .polygon_mode(vk::PolygonMode::FILL)
             .cull_mode(vk::CullModeFlags::BACK)
-            .front_face(vk::FrontFace::COUNTER_CLOCKWISE)
+            .front_face(vk::FrontFace::CLOCKWISE)
             .line_width(1.0);
 
         // Color blending
@@ -102,6 +102,17 @@ impl GraphicsPipeline {
             .blend_constants([0.0, 0.0, 0.0, 0.0])
             .attachments(&color_blend_attachment_states);
 
+        // Depth stencil
+        let depth_stencil_state_create_info = vk::PipelineDepthStencilStateCreateInfo::default()
+            .depth_test_enable(false)
+            .depth_write_enable(false)
+            .depth_compare_op(vk::CompareOp::ALWAYS)
+            .depth_bounds_test_enable(false)
+            .stencil_test_enable(false);
+
+        let dynamic_state_create_info = vk::PipelineDynamicStateCreateInfo::default()
+            .dynamic_states(&[vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR]);
+
         // Layout
         let create_info = vk::PipelineLayoutCreateInfo::default();
         let pipeline_layout = unsafe {
@@ -120,6 +131,8 @@ impl GraphicsPipeline {
             .input_assembly_state(&input_assembly_state_create_info)
             .color_blend_state(&color_blend_state)
             .rasterization_state(&rasterization_state)
+            .depth_stencil_state(&depth_stencil_state_create_info)
+            .dynamic_state(&dynamic_state_create_info)
             .layout(pipeline_layout);
 
         let graphics_pipeline = unsafe {

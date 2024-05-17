@@ -71,6 +71,20 @@ impl CommandBuffer {
         }
     }
 
+    pub fn set_viewport(&self, viewport: vk::Viewport) {
+        unsafe {
+            self.device.get_vk_device()
+                .cmd_set_viewport(self.command_buffer, 0, &[viewport]);
+        }
+    }
+
+    pub fn set_scissor(&self, scissor: vk::Rect2D) {
+        unsafe {
+            self.device.get_vk_device()
+                .cmd_set_scissor(self.command_buffer, 0, &[scissor]);
+        }
+    }
+
     pub fn bind_pipeline(&self, pipeline: Arc<GraphicsPipeline>) {
         unsafe {
             self.device.get_vk_device()
