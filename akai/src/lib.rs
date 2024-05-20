@@ -1,3 +1,3 @@
 pub mod application;
-mod vulkan;
+pub mod vulkan;
 mod window;
