@@ -46,25 +46,32 @@ impl Application {
 
         let render_pass = Arc::new(RenderPass::new(device.clone(), swapchain.get_format().format));
 
+        // Todo: Make graphics pipeline configurable
+        let graphics_pipeline = Arc::new(GraphicsPipeline::new(device.clone(), render_pass.clone()));
+
+        // Per frame resources
+
         let framebuffers = swapchain.clone().get_image_views().iter().map(|image_view| {
             Arc::new(Framebuffer::new(device.clone(), swapchain.get_extent(), render_pass.clone(), vec![image_view.clone()]))
         }).collect::<Vec<Arc<Framebuffer>>>();
 
-        let command_buffers = swapchain.clone().get_image_views().iter().map(|_| {
+        let command_buffers = (0..swapchain.clone().get_image_count()).map(|_| {
             Arc::new(CommandBuffer::new(device.clone(), command_pool.clone()))
         }).collect::<Vec<Arc<CommandBuffer>>>();
 
-        let image_available_semaphores = swapchain.clone().get_image_views().iter().map(|_| unsafe {
+        let image_available_semaphores = (0..swapchain.clone().get_image_count()).map(|_| unsafe {
             let semaphore_create_info = vk::SemaphoreCreateInfo::default();
             device.get_vk_device().create_semaphore(&semaphore_create_info, None)
                 .expect("Failed to create semaphore")
         }).collect::<Vec<vk::Semaphore>>();
-        let render_finished_semaphores = swapchain.clone().get_image_views().iter().map(|_| unsafe {
+
+        let render_finished_semaphores = (0..swapchain.clone().get_image_count()).map(|_| unsafe {
             let semaphore_create_info = vk::SemaphoreCreateInfo::default();
             device.get_vk_device().create_semaphore(&semaphore_create_info, None)
                 .expect("Failed to create semaphore")
         }).collect::<Vec<vk::Semaphore>>();
-        let in_flight_fences = swapchain.clone().get_image_views().iter().map(|_| {
+
+        let in_flight_fences = (0..swapchain.clone().get_image_count()).map(|_| {
             unsafe {
                 let fence_create_info = vk::FenceCreateInfo::default()
                     .flags(FenceCreateFlags::SIGNALED);
@@ -72,8 +79,6 @@ impl Application {
                     .expect("Failed to create fence")
             }
         }).collect::<Vec<vk::Fence>>();
-
-        let graphics_pipeline = Arc::new(GraphicsPipeline::new(device.clone(), render_pass.clone()));
 
         Self {
             window,

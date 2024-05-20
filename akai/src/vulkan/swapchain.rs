@@ -119,6 +119,10 @@ impl Swapchain {
         &self.image_views
     }
 
+    pub fn get_image_count(&self) -> u32 {
+        self.images.len() as u32
+    }
+
     pub fn get_extent(&self) -> vk::Extent2D {
         self.extent
     }
