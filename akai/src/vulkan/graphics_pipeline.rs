@@ -23,15 +23,10 @@ impl GraphicsPipeline {
         }
     }
 
-    pub fn new(device: Arc<Device>, render_pass: Arc<RenderPass>) -> GraphicsPipeline {
-
-        // TODO: Make graphics shaders configurable
+    pub fn new(device: Arc<Device>, render_pass: Arc<RenderPass>, vertex_shader_code: Vec<u8>, fragment_shader_code: Vec<u8>) -> GraphicsPipeline {
 
         // Shaders
-        let vertex_shader_code = include_bytes!("../../shaders/test_shader.vert.spv");
         let vertex_shader_module = Self::create_shader_module(device.get_vk_device(), vertex_shader_code.to_vec());
-
-        let fragment_shader_code = include_bytes!("../../shaders/test_shader.frag.spv");
         let fragment_shader_module = Self::create_shader_module(device.get_vk_device(), fragment_shader_code.to_vec());
 
         let binding = CString::new("main").unwrap();

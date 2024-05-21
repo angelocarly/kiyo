@@ -12,11 +12,17 @@ struct Game {
 
 impl Game {
     pub fn new(graphics_context: Arc<GraphicsContext>) -> Game {
+
+        let vertex_shader_code = include_bytes!("../shaders/test_shader.vert.spv");
+        let fragment_shader_code = include_bytes!("../shaders/test_shader.frag.spv");
+
         Game {
             graphics_context: graphics_context.clone(),
             graphics_pipeline: Arc::new(GraphicsPipeline::new(
                 graphics_context.clone().device.clone(),
-                graphics_context.clone().render_pass.clone()
+                graphics_context.clone().render_pass.clone(),
+                vertex_shader_code.to_vec(),
+                fragment_shader_code.to_vec(),
             ))
         }
     }
