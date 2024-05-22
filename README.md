@@ -21,10 +21,10 @@ I'm using the following examples to kickstart this project:
 
 The repository is still in a setup state. The following steps are necessary to get the project going:
 
-1. [ ] Get basic Vulkan wrappers working.
+1. [x] Get basic Vulkan wrappers working.
 2. [ ] Get the bare minimum of a Vulkan renderer going. These are:
    - [ ] Resizable windows
-   - [ ] In-flight command buffers
+   - [x] In-flight command buffers
 3. Specific engine dev can start
  
 Once the basic engine skeleton is set up, then child projects can be started to experiment with adding new functionality to Akai.
