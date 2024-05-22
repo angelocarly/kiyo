@@ -52,7 +52,7 @@ impl GameHandler for Game {
 
 fn main() {
     let event_loop = EventLoop::new().expect("Failed to create event loop.");
-    let mut app = Application::new(&event_loop, "Akai engine", 800, 600);
+    let app = Application::new(&event_loop, "Akai engine", 800, 600);
     let mut game = Game::new(app.get_graphics_context());
     app.run(event_loop, &mut game);
 }

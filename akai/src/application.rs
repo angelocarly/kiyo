@@ -4,7 +4,7 @@ use ash::vk::{FenceCreateFlags, PhysicalDevice, Queue};
 use winit::event::{Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
-use crate::vulkan::{Device, GraphicsPipeline, Instance, Surface, Swapchain, RenderPass, Framebuffer, CommandPool, CommandBuffer};
+use crate::vulkan::{Device, Instance, Surface, Swapchain, RenderPass, Framebuffer, CommandPool, CommandBuffer};
 use crate::window::Window;
 
 pub trait GameHandler {
@@ -222,7 +222,7 @@ impl Application {
         self.graphics_context.clone()
     }
 
-    pub fn run(mut self, mut event_loop: EventLoop<()>, mut game_handler: &mut dyn GameHandler) {
+    pub fn run(mut self, mut event_loop: EventLoop<()>, game_handler: &mut dyn GameHandler) {
         event_loop
             .run_on_demand(move |event, elwt| {
                 elwt.set_control_flow(ControlFlow::Poll);
