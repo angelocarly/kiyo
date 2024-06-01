@@ -46,6 +46,7 @@ cargo run
 ## Libraries
 - [ash](https://github.com/ash-rs/ash) - Vulkan bindings
 - [winit](https://github.com/rust-windowing/winit) - Window creation and handling
+- [shaderc](https://github.com/google/shaderc-rs) - Shader compilation
 
 ## Possible extensions
 
