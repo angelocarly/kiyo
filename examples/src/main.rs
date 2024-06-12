@@ -6,7 +6,7 @@ use winit::event_loop::EventLoop;
 struct Game {
     // TODO: Strict ordering is required for the pipeline to be destroyed before the instance
     //       So maybe context should be a weak reference?
-    graphics_pipeline: Arc<GraphicsPipeline>,
+    graphics_pipeline: GraphicsPipeline,
     graphics_context: Arc<GraphicsContext>,
 }
 
@@ -15,12 +15,12 @@ impl Game {
 
         Game {
             graphics_context: graphics_context.clone(),
-            graphics_pipeline: Arc::new(GraphicsPipeline::new(
+            graphics_pipeline: GraphicsPipeline::new(
                 graphics_context.clone().device.clone(),
                 graphics_context.clone().render_pass.clone(),
                 "examples/shaders/test_shader.vert".to_string(),
                 "examples/shaders/test_shader.frag".to_string(),
-            ))
+            )
         }
     }
 }
@@ -31,7 +31,7 @@ impl GameHandler for Game {
 
         render_context.begin_root_render_pass();
         {
-            render_context.command_buffer.bind_pipeline(self.graphics_pipeline.clone());
+            render_context.command_buffer.bind_pipeline(&self.graphics_pipeline);
             unsafe {
                 self.graphics_context.device.get_vk_device()
                     .cmd_draw(

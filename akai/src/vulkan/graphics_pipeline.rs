@@ -2,13 +2,26 @@ use std::ffi::CString;
 use std::fs;
 use std::sync::Arc;
 use ash::vk;
-use ash::vk::{ShaderModule};
+use ash::vk::{Pipeline, ShaderModule};
 use crate::vulkan::{Device, RenderPass};
 
-pub struct GraphicsPipeline {
+pub struct GraphicsPipelineInner {
     pub pipeline_layout: vk::PipelineLayout,
     pub graphics_pipeline: vk::Pipeline,
     pub device: Arc<Device>,
+}
+
+impl Drop for GraphicsPipelineInner {
+    fn drop(&mut self) {
+        unsafe {
+            self.device.get_vk_device().destroy_pipeline(self.graphics_pipeline, None);
+            self.device.get_vk_device().destroy_pipeline_layout(self.pipeline_layout, None);
+        }
+    }
+}
+
+pub struct GraphicsPipeline {
+    inner: Arc<GraphicsPipelineInner>
 }
 
 impl GraphicsPipeline {
@@ -50,7 +63,11 @@ impl GraphicsPipeline {
         binary_result.as_binary().to_vec()
     }
 
-    pub fn new(device: Arc<Device>, render_pass: Arc<RenderPass>, vertex_shader_source: String, fragment_shader_source: String) -> GraphicsPipeline {
+    pub fn handle(&self) -> Pipeline {
+        self.inner.graphics_pipeline
+    }
+
+    pub fn new(device: Arc<Device>, render_pass: Arc<RenderPass>, vertex_shader_source: String, fragment_shader_source: String) -> Self {
 
         let vertex_shader_code = Self::load_from_file(vertex_shader_source);
         let fragment_shader_code = Self::load_from_file(fragment_shader_source);
@@ -169,19 +186,14 @@ impl GraphicsPipeline {
         unsafe { device.get_vk_device().destroy_shader_module(fragment_shader_module, None); }
         unsafe { device.get_vk_device().destroy_shader_module(vertex_shader_module, None); }
 
-        Self {
-            device,
+        let pipeline_inner = GraphicsPipelineInner {
             pipeline_layout,
-            graphics_pipeline
-        }
-    }
-}
+            graphics_pipeline,
+            device
+        };
 
-impl Drop for GraphicsPipeline {
-    fn drop(&mut self) {
-        unsafe {
-            self.device.get_vk_device().destroy_pipeline(self.graphics_pipeline, None);
-            self.device.get_vk_device().destroy_pipeline_layout(self.pipeline_layout, None);
+        Self {
+            inner: Arc::new(pipeline_inner)
         }
     }
 }

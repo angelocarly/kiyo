@@ -85,10 +85,10 @@ impl CommandBuffer {
         }
     }
 
-    pub fn bind_pipeline(&self, pipeline: Arc<GraphicsPipeline>) {
+    pub fn bind_pipeline(&self, pipeline: &GraphicsPipeline) {
         unsafe {
             self.device.get_vk_device()
-                .cmd_bind_pipeline(self.command_buffer, PipelineBindPoint::GRAPHICS, pipeline.graphics_pipeline);
+                .cmd_bind_pipeline(self.command_buffer, PipelineBindPoint::GRAPHICS, pipeline.handle());
         }
     }
     pub fn get_vk_command_buffer(&self) -> vk::CommandBuffer {
