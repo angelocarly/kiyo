@@ -3,12 +3,13 @@ use ash::khr::swapchain;
 use ash::vk;
 use ash::vk::{CompositeAlphaFlagsKHR, ImageUsageFlags, SharingMode, SurfaceFormatKHR};
 use crate::vulkan::{Device, Instance, Surface};
+use crate::vulkan::device::DeviceInner;
 use crate::window::Window;
 
 /// Vulkan does not have a concept of a "default framebuffer". Instead, we need a framework that "owns" the images that will eventually be presented to the screen.
 /// The general purpose of the swapchain is to synchronize the presentation of images with the refresh rate of the screen.
 pub struct Swapchain {
-    device: Arc<Device>,
+    device_dep: Arc<DeviceInner>,
     swapchain_loader: swapchain::Device,
     swapchain: vk::SwapchainKHR,
     images: Vec<vk::Image>,
@@ -18,8 +19,8 @@ pub struct Swapchain {
 }
 
 impl Swapchain {
-    pub fn new(instance: Arc<Instance>, physical_device: &vk::PhysicalDevice, device: Arc<Device>, window: &Window, surface: Arc<Surface>) -> Swapchain {
-        let swapchain_loader = swapchain::Device::new(instance.get_vk_instance(), device.get_vk_device());
+    pub fn new(instance: Arc<Instance>, physical_device: &vk::PhysicalDevice, device: &Device, window: &Window, surface: Arc<Surface>) -> Swapchain {
+        let swapchain_loader = swapchain::Device::new(instance.get_vk_instance(), device.handle());
 
         let available_formats = surface.get_formats(physical_device);
         let surface_format = available_formats.iter()
@@ -96,12 +97,12 @@ impl Swapchain {
                 })
                 .image(image);
 
-            let imageview = unsafe { device.get_vk_device().create_image_view(&image_view_create_info, None).unwrap() };
+            let imageview = unsafe { device.handle().create_image_view(&image_view_create_info, None).unwrap() };
             image_views.push(imageview);
         }
 
         Self {
-            device,
+            device_dep: device.inner.clone(),
             swapchain_loader,
             swapchain,
             images,
@@ -172,7 +173,7 @@ impl Drop for Swapchain {
     fn drop(&mut self) {
         unsafe {
             for &image_view in self.image_views.iter() {
-                self.device.device.destroy_image_view(image_view, None);
+                self.device_dep.device.destroy_image_view(image_view, None);
             }
             self.swapchain_loader.destroy_swapchain(self.swapchain, None)
         }

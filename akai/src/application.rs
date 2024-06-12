@@ -13,7 +13,7 @@ pub trait GameHandler {
 
 pub struct GraphicsContext {
     pub render_pass: RenderPass,
-    pub device: Arc<Device>,
+    pub device: Device,
     pub physical_device: PhysicalDevice,
     pub instance: Arc<Instance>,
 }
@@ -60,34 +60,34 @@ impl Application {
         let instance = Arc::new(Instance::new(entry.clone(), window.display_handle()));
         let surface = Arc::new(Surface::new(instance.clone(), &window));
         let (physical_device, queue_family_index) = instance.create_physical_device(surface.clone());
-        let device = Arc::new(Device::new(instance.clone(), physical_device, queue_family_index));
+        let device = Device::new(instance.clone(), physical_device, queue_family_index);
         let queue = device.get_queue(0);
-        let command_pool = Arc::new(CommandPool::new(device.clone(), queue_family_index));
+        let command_pool = Arc::new(CommandPool::new(&device, queue_family_index));
 
-        let swapchain = Arc::new(Swapchain::new(instance.clone(), &physical_device, device.clone(), &window, surface.clone()));
-        Self::transition_swapchain_images(device.clone(), command_pool.clone(), &queue, swapchain.clone());
+        let swapchain = Arc::new(Swapchain::new(instance.clone(), &physical_device, &device, &window, surface.clone()));
+        Self::transition_swapchain_images(&device, command_pool.clone(), &queue, swapchain.clone());
 
-        let render_pass = RenderPass::new(device.clone(), swapchain.get_format().format);
+        let render_pass = RenderPass::new(&device, swapchain.get_format().format);
 
         // Per frame resources
 
         let framebuffers = swapchain.clone().get_image_views().iter().map(|image_view| {
-            Framebuffer::new(device.clone(), swapchain.get_extent(), &render_pass, vec![image_view.clone()])
+            Framebuffer::new(&device, swapchain.get_extent(), &render_pass, vec![image_view.clone()])
         }).collect::<Vec<Framebuffer>>();
 
         let command_buffers = (0..swapchain.clone().get_image_count()).map(|_| {
-            Arc::new(CommandBuffer::new(device.clone(), command_pool.clone()))
+            Arc::new(CommandBuffer::new(&device, command_pool.clone()))
         }).collect::<Vec<Arc<CommandBuffer>>>();
 
         let image_available_semaphores = (0..swapchain.clone().get_image_count()).map(|_| unsafe {
             let semaphore_create_info = vk::SemaphoreCreateInfo::default();
-            device.get_vk_device().create_semaphore(&semaphore_create_info, None)
+            device.handle().create_semaphore(&semaphore_create_info, None)
                 .expect("Failed to create semaphore")
         }).collect::<Vec<vk::Semaphore>>();
 
         let render_finished_semaphores = (0..swapchain.clone().get_image_count()).map(|_| unsafe {
             let semaphore_create_info = vk::SemaphoreCreateInfo::default();
-            device.get_vk_device().create_semaphore(&semaphore_create_info, None)
+            device.handle().create_semaphore(&semaphore_create_info, None)
                 .expect("Failed to create semaphore")
         }).collect::<Vec<vk::Semaphore>>();
 
@@ -95,14 +95,14 @@ impl Application {
             unsafe {
                 let fence_create_info = vk::FenceCreateInfo::default()
                     .flags(FenceCreateFlags::SIGNALED);
-                device.get_vk_device().create_fence(&fence_create_info, None)
+                device.handle().create_fence(&fence_create_info, None)
                     .expect("Failed to create fence")
             }
         }).collect::<Vec<vk::Fence>>();
 
         let graphics_context = Arc::new(GraphicsContext {
             render_pass,
-            device: device.clone(),
+            device,
             physical_device,
             instance: instance.clone(),
         });
@@ -124,8 +124,8 @@ impl Application {
         }
     }
 
-    fn transition_swapchain_images(device: Arc<Device>, command_pool: Arc<CommandPool>, queue: &Queue, swapchain: Arc<Swapchain>) {
-        let image_command_buffer = Arc::new(CommandBuffer::new(device.clone(), command_pool.clone()));
+    fn transition_swapchain_images(device: &Device, command_pool: Arc<CommandPool>, queue: &Queue, swapchain: Arc<Swapchain>) {
+        let image_command_buffer = Arc::new(CommandBuffer::new(device, command_pool.clone()));
         image_command_buffer.begin();
         swapchain.get_images().iter().for_each(|image| {
             let image_memory_barrier = vk::ImageMemoryBarrier::default()
@@ -144,7 +144,7 @@ impl Application {
                     layer_count: 1,
                 });
             unsafe {
-                device.get_vk_device().cmd_pipeline_barrier(
+                device.handle().cmd_pipeline_barrier(
                     image_command_buffer.get_vk_command_buffer(),
                     vk::PipelineStageFlags::TOP_OF_PIPE,
                     vk::PipelineStageFlags::BOTTOM_OF_PIPE,
@@ -252,15 +252,15 @@ impl Application {
 impl Drop for Application {
     fn drop(&mut self) {
         unsafe {
-            self.graphics_context.device.get_vk_device().device_wait_idle().unwrap();
+            self.graphics_context.device.handle().device_wait_idle().unwrap();
             for semaphore in &self.render_finished_semaphores {
-                self.graphics_context.device.get_vk_device().destroy_semaphore(*semaphore, None);
+                self.graphics_context.device.handle().destroy_semaphore(*semaphore, None);
             }
             for semaphore in &self.image_available_semaphores {
-                self.graphics_context.device.get_vk_device().destroy_semaphore(*semaphore, None);
+                self.graphics_context.device.handle().destroy_semaphore(*semaphore, None);
             }
             for fence in &self.in_flight_fences {
-                self.graphics_context.device.get_vk_device().destroy_fence(*fence, None);
+                self.graphics_context.device.handle().destroy_fence(*fence, None);
             }
         }
     }

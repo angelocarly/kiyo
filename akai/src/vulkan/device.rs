@@ -5,9 +5,22 @@ use ash::vk::{PipelineStageFlags, Queue};
 use crate::vulkan::{CommandBuffer, Instance};
 
 /// A connection to a physical GPU.
-pub struct Device {
+pub struct DeviceInner {
     pub device: ash::Device,
     pub queue_family_index: u32,
+}
+
+impl Drop for DeviceInner {
+    fn drop(&mut self) {
+        unsafe {
+            self.device.device_wait_idle().unwrap();
+            self.device.destroy_device(None);
+        }
+    }
+}
+
+pub struct Device {
+    pub inner: Arc<DeviceInner>,
 }
 
 impl Device {
@@ -39,24 +52,28 @@ impl Device {
                 .create_device(physical_device, &device_create_info, None)
         }.unwrap();
 
-        Self {
+        let device_inner = DeviceInner {
             device,
-            queue_family_index
+            queue_family_index,
+        };
+
+        Self {
+            inner: Arc::new(device_inner),
         }
     }
 
-    pub fn get_vk_device(&self) -> &ash::Device {
-        &self.device
+    pub fn handle(&self) -> &ash::Device {
+        &self.inner.device
     }
 
     pub fn get_queue(&self, queue_index: u32) -> Queue {
-        unsafe { self.device.get_device_queue(self.queue_family_index, queue_index) }
+        unsafe { self.handle().get_device_queue(self.inner.queue_family_index, queue_index) }
     }
 
     pub fn wait_for_fence(&self, fence: vk::Fence) {
         unsafe {
             let fences = [fence];
-            self.device
+            self.handle()
                 .wait_for_fences(&fences, true, u64::MAX)
                 .expect("Failed to destroy fence");
         }
@@ -65,7 +82,7 @@ impl Device {
     pub fn reset_fence(&self, fence: vk::Fence) {
         unsafe {
             let fences = [fence];
-            self.device
+            self.handle()
                 .reset_fences(&fences)
                 .unwrap()
         }
@@ -82,16 +99,16 @@ impl Device {
                 .command_buffers(&command_buffers);
 
             let fence_create_info = vk::FenceCreateInfo::default();
-            let fence = self.device
+            let fence = self.handle()
                     .create_fence(&fence_create_info, None)
                     .expect("Failed to create fence");
 
             let submits = [submit_info];
-            self.device.queue_submit(queue, &submits, fence).unwrap();
+            self.handle().queue_submit(queue, &submits, fence).unwrap();
 
             self.wait_for_fence(fence);
 
-            self.device
+            self.handle()
                 .destroy_fence(fence, None);
         }
     }
@@ -125,15 +142,6 @@ impl Device {
             .wait_dst_stage_mask(&wait_dst_stage_masks);
 
         let submits = [submit_info];
-        unsafe { self.device.queue_submit(*queue, &submits, fence).unwrap(); }
-    }
-}
-
-impl Drop for Device {
-    fn drop(&mut self) {
-        unsafe {
-            self.device.device_wait_idle().unwrap();
-            self.device.destroy_device(None);
-        }
+        unsafe { self.handle().queue_submit(*queue, &submits, fence).unwrap(); }
     }
 }

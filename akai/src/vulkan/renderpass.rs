@@ -1,16 +1,17 @@
 use std::sync::Arc;
 use ash::{vk};
 use crate::vulkan::{Device};
+use crate::vulkan::device::DeviceInner;
 
 pub struct RenderPassInner {
     pub renderpass: vk::RenderPass,
-    pub device: Arc<Device>,
+    pub device_dep: Arc<DeviceInner>,
 }
 
 impl Drop for RenderPassInner {
     fn drop(&mut self) {
         unsafe {
-            self.device.device.destroy_render_pass(self.renderpass, None);
+            self.device_dep.device.destroy_render_pass(self.renderpass, None);
         }
     }
 }
@@ -20,7 +21,7 @@ pub struct RenderPass {
 }
 
 impl RenderPass {
-    pub fn new(device: Arc<Device>, surface_format: vk::Format) -> RenderPass {
+    pub fn new(device: &Device, surface_format: vk::Format) -> RenderPass {
         let color_attachment = vk::AttachmentDescription::default()
             .format(surface_format)
             .samples(vk::SampleCountFlags::TYPE_1)
@@ -48,14 +49,14 @@ impl RenderPass {
             .subpasses(&subpass_descriptions);
 
         let renderpass = unsafe {
-            device.get_vk_device()
+            device.handle()
                 .create_render_pass(&renderpass_create_info, None)
                 .expect("Failed to create render pass")
         };
 
         let renderpass_inner = RenderPassInner {
             renderpass,
-            device
+            device_dep: device.inner.clone()
         };
 
         RenderPass {

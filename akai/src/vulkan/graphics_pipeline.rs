@@ -4,18 +4,19 @@ use std::sync::Arc;
 use ash::vk;
 use ash::vk::{Pipeline, ShaderModule};
 use crate::vulkan::{Device, RenderPass};
+use crate::vulkan::device::DeviceInner;
 
 pub struct GraphicsPipelineInner {
     pub pipeline_layout: vk::PipelineLayout,
     pub graphics_pipeline: vk::Pipeline,
-    pub device: Arc<Device>,
+    pub device_dep: Arc<DeviceInner>,
 }
 
 impl Drop for GraphicsPipelineInner {
     fn drop(&mut self) {
         unsafe {
-            self.device.get_vk_device().destroy_pipeline(self.graphics_pipeline, None);
-            self.device.get_vk_device().destroy_pipeline_layout(self.pipeline_layout, None);
+            self.device_dep.device.destroy_pipeline(self.graphics_pipeline, None);
+            self.device_dep.device.destroy_pipeline_layout(self.pipeline_layout, None);
         }
     }
 }
@@ -67,14 +68,14 @@ impl GraphicsPipeline {
         self.inner.graphics_pipeline
     }
 
-    pub fn new(device: Arc<Device>, render_pass: &RenderPass, vertex_shader_source: String, fragment_shader_source: String) -> Self {
+    pub fn new(device: &Device, render_pass: &RenderPass, vertex_shader_source: String, fragment_shader_source: String) -> Self {
 
         let vertex_shader_code = Self::load_from_file(vertex_shader_source);
         let fragment_shader_code = Self::load_from_file(fragment_shader_source);
 
         // Shaders
-        let vertex_shader_module = Self::create_shader_module(device.get_vk_device(), vertex_shader_code.to_vec());
-        let fragment_shader_module = Self::create_shader_module(device.get_vk_device(), fragment_shader_code.to_vec());
+        let vertex_shader_module = Self::create_shader_module(device.handle(), vertex_shader_code.to_vec());
+        let fragment_shader_module = Self::create_shader_module(device.handle(), fragment_shader_code.to_vec());
 
         let binding = CString::new("main").unwrap();
         let shader_stages = [
@@ -158,7 +159,7 @@ impl GraphicsPipeline {
         // Layout
         let create_info = vk::PipelineLayoutCreateInfo::default();
         let pipeline_layout = unsafe {
-            device.get_vk_device()
+            device.handle()
                 .create_pipeline_layout(&create_info, None)
                 .expect("Failed to create pipeline layout")
         };
@@ -178,18 +179,18 @@ impl GraphicsPipeline {
             .layout(pipeline_layout);
 
         let graphics_pipeline = unsafe {
-            device.get_vk_device()
+            device.handle()
                 .create_graphics_pipelines(vk::PipelineCache::null(), &[graphics_pipeline_create_info], None)
                 .expect("Failed to create graphics pipeline")[0]
         };
 
-        unsafe { device.get_vk_device().destroy_shader_module(fragment_shader_module, None); }
-        unsafe { device.get_vk_device().destroy_shader_module(vertex_shader_module, None); }
+        unsafe { device.handle().destroy_shader_module(fragment_shader_module, None); }
+        unsafe { device.handle().destroy_shader_module(vertex_shader_module, None); }
 
         let pipeline_inner = GraphicsPipelineInner {
             pipeline_layout,
             graphics_pipeline,
-            device
+            device_dep: device.inner.clone()
         };
 
         Self {

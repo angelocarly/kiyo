@@ -16,7 +16,7 @@ impl Game {
         Game {
             graphics_context: graphics_context.clone(),
             graphics_pipeline: GraphicsPipeline::new(
-                graphics_context.clone().device.clone(),
+                &graphics_context.clone().device,
                 &graphics_context.clone().render_pass,
                 "examples/shaders/test_shader.vert".to_string(),
                 "examples/shaders/test_shader.frag".to_string(),
@@ -33,7 +33,7 @@ impl GameHandler for Game {
         {
             render_context.command_buffer.bind_pipeline(&self.graphics_pipeline);
             unsafe {
-                self.graphics_context.device.get_vk_device()
+                self.graphics_context.device.handle()
                     .cmd_draw(
                         render_context.command_buffer.get_vk_command_buffer(),
                         3,
