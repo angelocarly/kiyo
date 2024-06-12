@@ -3,10 +3,22 @@ use ash::vk;
 use ash::vk::Extent2D;
 use crate::vulkan::{Device, RenderPass};
 
-pub struct Framebuffer {
+pub struct FramebufferInner {
     pub framebuffer: vk::Framebuffer,
     pub device: Arc<Device>,
     pub extent: Extent2D,
+}
+
+impl Drop for FramebufferInner {
+    fn drop(&mut self) {
+        unsafe {
+            self.device.device.destroy_framebuffer(self.framebuffer, None);
+        }
+    }
+}
+
+pub struct Framebuffer {
+    pub inner: Arc<FramebufferInner>,
 }
 
 impl Framebuffer {
@@ -25,26 +37,22 @@ impl Framebuffer {
                 .expect("Failed to create framebuffer")
         };
 
-        Framebuffer {
+        let framebuffer_inner = FramebufferInner {
             device,
             framebuffer,
             extent
+        };
+
+        Framebuffer {
+            inner: Arc::new(framebuffer_inner)
         }
     }
 
-    pub fn get_vk_framebuffer(&self) -> vk::Framebuffer {
-        self.framebuffer
+    pub fn handle(&self) -> vk::Framebuffer {
+        self.inner.framebuffer
     }
 
     pub fn get_extent(&self) -> vk::Extent2D {
-        self.extent
-    }
-}
-
-impl Drop for Framebuffer {
-    fn drop(&mut self) {
-        unsafe {
-            self.device.device.destroy_framebuffer(self.framebuffer, None);
-        }
+        self.inner.extent
     }
 }

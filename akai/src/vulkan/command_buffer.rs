@@ -45,7 +45,7 @@ impl CommandBuffer {
         }
     }
 
-    pub fn begin_render_pass(&self, render_pass: &RenderPass, framebuffer: Arc<Framebuffer>) {
+    pub fn begin_render_pass(&self, render_pass: &RenderPass, framebuffer: &Framebuffer) {
         let render_pass_begin_info = vk::RenderPassBeginInfo::default()
             .render_area(vk::Rect2D {
                 offset: vk::Offset2D { x: 0, y: 0 },
@@ -57,7 +57,7 @@ impl CommandBuffer {
                 },
             }])
             .render_pass(render_pass.handle())
-            .framebuffer(framebuffer.get_vk_framebuffer());
+            .framebuffer(framebuffer.handle());
         unsafe {
             self.device.get_vk_device()
                 .cmd_begin_render_pass(self.command_buffer, &render_pass_begin_info, vk::SubpassContents::INLINE);

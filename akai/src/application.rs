@@ -20,7 +20,7 @@ pub struct GraphicsContext {
 
 pub struct RenderContext<'a> {
     render_pass: &'a RenderPass,
-    framebuffer: Arc<Framebuffer>,
+    framebuffer: &'a Framebuffer,
     pub command_buffer: Arc<CommandBuffer>,
 }
 
@@ -28,7 +28,7 @@ impl RenderContext<'_> {
     pub fn begin_root_render_pass(&self) {
         self.command_buffer.begin_render_pass(
             &self.render_pass,
-            self.framebuffer.clone()
+            &self.framebuffer
         );
     }
 }
@@ -41,7 +41,7 @@ pub struct Application {
     pub command_buffers: Vec<Arc<CommandBuffer>>,
     pub command_pool: Arc<CommandPool>,
     pub queue: Queue,
-    pub framebuffers: Vec<Arc<Framebuffer>>,
+    pub framebuffers: Vec<Framebuffer>,
     pub swapchain: Arc<Swapchain>,
     pub window: Window,
     pub entry: Arc<ash::Entry>,
@@ -72,8 +72,8 @@ impl Application {
         // Per frame resources
 
         let framebuffers = swapchain.clone().get_image_views().iter().map(|image_view| {
-            Arc::new(Framebuffer::new(device.clone(), swapchain.get_extent(), &render_pass, vec![image_view.clone()]))
-        }).collect::<Vec<Arc<Framebuffer>>>();
+            Framebuffer::new(device.clone(), swapchain.get_extent(), &render_pass, vec![image_view.clone()])
+        }).collect::<Vec<Framebuffer>>();
 
         let command_buffers = (0..swapchain.clone().get_image_count()).map(|_| {
             Arc::new(CommandBuffer::new(device.clone(), command_pool.clone()))
@@ -159,7 +159,7 @@ impl Application {
         device.submit_single_time_command(*queue, image_command_buffer);
     }
 
-    fn record_command_buffer(&mut self, command_buffer: Arc<CommandBuffer>, framebuffer: Arc<Framebuffer>, game_handler: &mut dyn GameHandler) {
+    fn record_command_buffer(&mut self, command_buffer: Arc<CommandBuffer>, frame_index: usize, game_handler: &mut dyn GameHandler) {
 
         command_buffer.begin();
 
@@ -183,7 +183,7 @@ impl Application {
 
         let render_context = RenderContext {
             render_pass: &self.graphics_context.render_pass,
-            framebuffer: framebuffer.clone(),
+            framebuffer: &self.framebuffers[frame_index],
             command_buffer: command_buffer.clone(),
         };
         game_handler.render(&render_context);
@@ -198,7 +198,7 @@ impl Application {
 
         let index = self.swapchain.acquire_next_image(self.image_available_semaphores[self.frame_index]) as usize;
 
-        self.record_command_buffer(self.command_buffers[self.frame_index].clone(), self.framebuffers[index].clone(), game_handler);
+        self.record_command_buffer(self.command_buffers[self.frame_index].clone(), index, game_handler);
 
         self.graphics_context.device.reset_fence(self.in_flight_fences[self.frame_index]);
         self.graphics_context.device.submit_command_buffer(
