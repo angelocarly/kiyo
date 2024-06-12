@@ -2,9 +2,21 @@ use std::sync::Arc;
 use ash::{vk};
 use crate::vulkan::{Device};
 
-pub struct RenderPass {
+pub struct RenderPassInner {
     pub renderpass: vk::RenderPass,
     pub device: Arc<Device>,
+}
+
+impl Drop for RenderPassInner {
+    fn drop(&mut self) {
+        unsafe {
+            self.device.device.destroy_render_pass(self.renderpass, None);
+        }
+    }
+}
+
+pub struct RenderPass {
+    pub inner: Arc<RenderPassInner>,
 }
 
 impl RenderPass {
@@ -41,22 +53,18 @@ impl RenderPass {
                 .expect("Failed to create render pass")
         };
 
+        let renderpass_inner = RenderPassInner {
+            renderpass,
+            device
+        };
+
         RenderPass {
-            device,
-            renderpass
+            inner: Arc::new(renderpass_inner),
         }
     }
 
-    pub fn get_vk_render_pass(&self) -> vk::RenderPass {
-        self.renderpass
+    pub fn handle(&self) -> vk::RenderPass {
+        self.inner.renderpass
     }
 
-}
-
-impl Drop for RenderPass {
-    fn drop(&mut self) {
-        unsafe {
-            self.device.device.destroy_render_pass(self.renderpass, None);
-        }
-    }
 }

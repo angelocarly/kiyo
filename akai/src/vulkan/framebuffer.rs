@@ -10,10 +10,10 @@ pub struct Framebuffer {
 }
 
 impl Framebuffer {
-    pub fn new(device: Arc<Device>, extent: vk::Extent2D, render_pass: Arc<RenderPass>, attachments: Vec<vk::ImageView>) -> Self {
+    pub fn new(device: Arc<Device>, extent: vk::Extent2D, render_pass: &RenderPass, attachments: Vec<vk::ImageView>) -> Self {
 
         let framebuffer_create_info = vk::FramebufferCreateInfo::default()
-            .render_pass(render_pass.get_vk_render_pass())
+            .render_pass(render_pass.handle())
             .attachments(&attachments)
             .width(extent.width)
             .height(extent.height)

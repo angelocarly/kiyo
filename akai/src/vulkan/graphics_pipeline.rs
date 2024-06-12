@@ -49,7 +49,7 @@ impl GraphicsPipeline {
 
         let source = fs::read_to_string(source_file.clone()).expect(format!("Failed to read file: {}", source_file).as_str());
 
-        let mut compiler = shaderc::Compiler::new().unwrap();
+        let compiler = shaderc::Compiler::new().unwrap();
         let mut options = shaderc::CompileOptions::new().unwrap();
         options.add_macro_definition("EP", Some("main"));
         let binary_result = compiler.compile_into_spirv(
@@ -67,7 +67,7 @@ impl GraphicsPipeline {
         self.inner.graphics_pipeline
     }
 
-    pub fn new(device: Arc<Device>, render_pass: Arc<RenderPass>, vertex_shader_source: String, fragment_shader_source: String) -> Self {
+    pub fn new(device: Arc<Device>, render_pass: &RenderPass, vertex_shader_source: String, fragment_shader_source: String) -> Self {
 
         let vertex_shader_code = Self::load_from_file(vertex_shader_source);
         let fragment_shader_code = Self::load_from_file(fragment_shader_source);
@@ -166,7 +166,7 @@ impl GraphicsPipeline {
         // pipeline
         let graphics_pipeline_create_info = vk::GraphicsPipelineCreateInfo::default()
             .stages(&shader_stages)
-            .render_pass(render_pass.get_vk_render_pass())
+            .render_pass(render_pass.handle())
             .multisample_state(&multisample_state_create_info)
             .viewport_state(&viewport_state_create_info)
             .vertex_input_state(&vertex_input_state_create_info)

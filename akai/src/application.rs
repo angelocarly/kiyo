@@ -12,22 +12,22 @@ pub trait GameHandler {
 }
 
 pub struct GraphicsContext {
-    pub render_pass: Arc<RenderPass>,
+    pub render_pass: RenderPass,
     pub device: Arc<Device>,
     pub physical_device: PhysicalDevice,
     pub instance: Arc<Instance>,
 }
 
-pub struct RenderContext {
-    render_pass: Arc<RenderPass>,
+pub struct RenderContext<'a> {
+    render_pass: &'a RenderPass,
     framebuffer: Arc<Framebuffer>,
     pub command_buffer: Arc<CommandBuffer>,
 }
 
-impl RenderContext {
+impl RenderContext<'_> {
     pub fn begin_root_render_pass(&self) {
         self.command_buffer.begin_render_pass(
-            self.render_pass.clone(),
+            &self.render_pass,
             self.framebuffer.clone()
         );
     }
@@ -67,12 +67,12 @@ impl Application {
         let swapchain = Arc::new(Swapchain::new(instance.clone(), &physical_device, device.clone(), &window, surface.clone()));
         Self::transition_swapchain_images(device.clone(), command_pool.clone(), &queue, swapchain.clone());
 
-        let render_pass = Arc::new(RenderPass::new(device.clone(), swapchain.get_format().format));
+        let render_pass = RenderPass::new(device.clone(), swapchain.get_format().format);
 
         // Per frame resources
 
         let framebuffers = swapchain.clone().get_image_views().iter().map(|image_view| {
-            Arc::new(Framebuffer::new(device.clone(), swapchain.get_extent(), render_pass.clone(), vec![image_view.clone()]))
+            Arc::new(Framebuffer::new(device.clone(), swapchain.get_extent(), &render_pass, vec![image_view.clone()]))
         }).collect::<Vec<Arc<Framebuffer>>>();
 
         let command_buffers = (0..swapchain.clone().get_image_count()).map(|_| {
@@ -101,7 +101,7 @@ impl Application {
         }).collect::<Vec<vk::Fence>>();
 
         let graphics_context = Arc::new(GraphicsContext {
-            render_pass: render_pass.clone(),
+            render_pass,
             device: device.clone(),
             physical_device,
             instance: instance.clone(),
@@ -182,7 +182,7 @@ impl Application {
         );
 
         let render_context = RenderContext {
-            render_pass: self.graphics_context.render_pass.clone(),
+            render_pass: &self.graphics_context.render_pass,
             framebuffer: framebuffer.clone(),
             command_buffer: command_buffer.clone(),
         };

@@ -17,7 +17,7 @@ impl Game {
             graphics_context: graphics_context.clone(),
             graphics_pipeline: GraphicsPipeline::new(
                 graphics_context.clone().device.clone(),
-                graphics_context.clone().render_pass.clone(),
+                &graphics_context.clone().render_pass,
                 "examples/shaders/test_shader.vert".to_string(),
                 "examples/shaders/test_shader.frag".to_string(),
             )
