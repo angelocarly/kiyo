@@ -42,7 +42,7 @@ pub struct Application {
     pub command_pool: Arc<CommandPool>,
     pub queue: Queue,
     pub framebuffers: Vec<Framebuffer>,
-    pub swapchain: Arc<Swapchain>,
+    pub swapchain: Swapchain,
     pub window: Window,
     pub entry: Arc<ash::Entry>,
     pub surface: Arc<Surface>,
@@ -64,34 +64,34 @@ impl Application {
         let queue = device.get_queue(0);
         let command_pool = Arc::new(CommandPool::new(&device, queue_family_index));
 
-        let swapchain = Arc::new(Swapchain::new(instance.clone(), &physical_device, &device, &window, surface.clone()));
-        Self::transition_swapchain_images(&device, command_pool.clone(), &queue, swapchain.clone());
+        let swapchain = Swapchain::new(instance.clone(), &physical_device, &device, &window, surface.clone());
+        Self::transition_swapchain_images(&device, command_pool.clone(), &queue, &swapchain);
 
         let render_pass = RenderPass::new(&device, swapchain.get_format().format);
 
         // Per frame resources
 
-        let framebuffers = swapchain.clone().get_image_views().iter().map(|image_view| {
+        let framebuffers = swapchain.get_image_views().iter().map(|image_view| {
             Framebuffer::new(&device, swapchain.get_extent(), &render_pass, vec![image_view.clone()])
         }).collect::<Vec<Framebuffer>>();
 
-        let command_buffers = (0..swapchain.clone().get_image_count()).map(|_| {
+        let command_buffers = (0..swapchain.get_image_count()).map(|_| {
             Arc::new(CommandBuffer::new(&device, command_pool.clone()))
         }).collect::<Vec<Arc<CommandBuffer>>>();
 
-        let image_available_semaphores = (0..swapchain.clone().get_image_count()).map(|_| unsafe {
+        let image_available_semaphores = (0..swapchain.get_image_count()).map(|_| unsafe {
             let semaphore_create_info = vk::SemaphoreCreateInfo::default();
             device.handle().create_semaphore(&semaphore_create_info, None)
                 .expect("Failed to create semaphore")
         }).collect::<Vec<vk::Semaphore>>();
 
-        let render_finished_semaphores = (0..swapchain.clone().get_image_count()).map(|_| unsafe {
+        let render_finished_semaphores = (0..swapchain.get_image_count()).map(|_| unsafe {
             let semaphore_create_info = vk::SemaphoreCreateInfo::default();
             device.handle().create_semaphore(&semaphore_create_info, None)
                 .expect("Failed to create semaphore")
         }).collect::<Vec<vk::Semaphore>>();
 
-        let in_flight_fences = (0..swapchain.clone().get_image_count()).map(|_| {
+        let in_flight_fences = (0..swapchain.get_image_count()).map(|_| {
             unsafe {
                 let fence_create_info = vk::FenceCreateInfo::default()
                     .flags(FenceCreateFlags::SIGNALED);
@@ -124,7 +124,7 @@ impl Application {
         }
     }
 
-    fn transition_swapchain_images(device: &Device, command_pool: Arc<CommandPool>, queue: &Queue, swapchain: Arc<Swapchain>) {
+    fn transition_swapchain_images(device: &Device, command_pool: Arc<CommandPool>, queue: &Queue, swapchain: &Swapchain) {
         let image_command_buffer = Arc::new(CommandBuffer::new(device, command_pool.clone()));
         image_command_buffer.begin();
         swapchain.get_images().iter().for_each(|image| {

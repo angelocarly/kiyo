@@ -1,14 +1,14 @@
 use std::sync::Arc;
 use ash::khr::swapchain;
 use ash::vk;
-use ash::vk::{CompositeAlphaFlagsKHR, ImageUsageFlags, SharingMode, SurfaceFormatKHR};
+use ash::vk::{CompositeAlphaFlagsKHR, ImageUsageFlags, SharingMode, SurfaceFormatKHR, SwapchainKHR};
 use crate::vulkan::{Device, Instance, Surface};
 use crate::vulkan::device::DeviceInner;
 use crate::window::Window;
 
 /// Vulkan does not have a concept of a "default framebuffer". Instead, we need a framework that "owns" the images that will eventually be presented to the screen.
 /// The general purpose of the swapchain is to synchronize the presentation of images with the refresh rate of the screen.
-pub struct Swapchain {
+pub struct SwapchainInner {
     device_dep: Arc<DeviceInner>,
     swapchain_loader: swapchain::Device,
     swapchain: vk::SwapchainKHR,
@@ -16,6 +16,21 @@ pub struct Swapchain {
     image_views: Vec<vk::ImageView>,
     extent: vk::Extent2D,
     format: SurfaceFormatKHR
+}
+
+impl Drop for SwapchainInner {
+    fn drop(&mut self) {
+        unsafe {
+            for &image_view in self.image_views.iter() {
+                self.device_dep.device.destroy_image_view(image_view, None);
+            }
+            self.swapchain_loader.destroy_swapchain(self.swapchain, None)
+        }
+    }
+}
+
+pub struct Swapchain {
+    pub inner: Arc<SwapchainInner>,
 }
 
 impl Swapchain {
@@ -101,7 +116,7 @@ impl Swapchain {
             image_views.push(imageview);
         }
 
-        Self {
+        let swapchain_inner = SwapchainInner {
             device_dep: device.inner.clone(),
             swapchain_loader,
             swapchain,
@@ -109,27 +124,35 @@ impl Swapchain {
             image_views,
             extent,
             format: *surface_format
+        };
+
+        Self {
+            inner: Arc::new(swapchain_inner)
         }
     }
 
     pub fn get_images(&self) -> &Vec<vk::Image> {
-        &self.images
+        &self.inner.images
     }
 
     pub fn get_image_views(&self) -> &Vec<vk::ImageView> {
-        &self.image_views
+        &self.inner.image_views
     }
 
     pub fn get_image_count(&self) -> u32 {
-        self.images.len() as u32
+        self.inner.images.len() as u32
     }
 
     pub fn get_extent(&self) -> vk::Extent2D {
-        self.extent
+        self.inner.extent
     }
 
     pub fn get_format(&self) -> SurfaceFormatKHR {
-        self.format
+        self.inner.format
+    }
+
+    pub fn handle(&self) -> SwapchainKHR {
+        self.inner.swapchain
     }
 
     /// Queue an image for presentation.
@@ -138,14 +161,14 @@ impl Swapchain {
     /// https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkQueuePresentKHR.html
     pub fn queue_present(&self, queue: vk::Queue, semaphore: vk::Semaphore, index: u32) {
         unsafe {
-            let swapchains = [self.swapchain];
+            let swapchains = [self.handle()];
             let indices = [index];
             let semaphores = [semaphore];
             let present_info = vk::PresentInfoKHR::default()
                 .wait_semaphores(&semaphores)
                 .swapchains(&swapchains)
                 .image_indices(&indices);
-            self.swapchain_loader.queue_present(queue, &present_info)
+            self.inner.swapchain_loader.queue_present(queue, &present_info)
                 .expect("Failed to present queue");
         }
     }
@@ -156,26 +179,15 @@ impl Swapchain {
     /// https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkAcquireNextImageKHR.html
     pub fn acquire_next_image(&self, semaphore: vk::Semaphore) -> u32 {
         unsafe {
-            let (image_index, _) = self.swapchain_loader
+            let (image_index, _) = self.inner.swapchain_loader
                 .acquire_next_image(
-                    self.swapchain,
+                    self.handle(),
                     u64::MAX,
                     semaphore,
                     vk::Fence::null()
                 )
                 .expect("Failed to acquire next image");
             image_index
-        }
-    }
-}
-
-impl Drop for Swapchain {
-    fn drop(&mut self) {
-        unsafe {
-            for &image_view in self.image_views.iter() {
-                self.device_dep.device.destroy_image_view(image_view, None);
-            }
-            self.swapchain_loader.destroy_swapchain(self.swapchain, None)
         }
     }
 }
