@@ -45,7 +45,7 @@ pub struct Application {
     pub swapchain: Swapchain,
     pub window: Window,
     pub entry: Arc<ash::Entry>,
-    pub surface: Arc<Surface>,
+    pub surface: Surface,
     pub graphics_context: Arc<GraphicsContext>,
     pub frame_index: usize,
     pub in_flight_fences: Vec<vk::Fence>,
@@ -58,13 +58,13 @@ impl Application {
 
         let entry = Arc::new(ash::Entry::linked());
         let instance = Arc::new(Instance::new(entry.clone(), window.display_handle()));
-        let surface = Arc::new(Surface::new(instance.clone(), &window));
-        let (physical_device, queue_family_index) = instance.create_physical_device(surface.clone());
+        let surface = Surface::new(instance.clone(), &window);
+        let (physical_device, queue_family_index) = instance.create_physical_device(&surface);
         let device = Device::new(instance.clone(), physical_device, queue_family_index);
         let queue = device.get_queue(0);
         let command_pool = Arc::new(CommandPool::new(&device, queue_family_index));
 
-        let swapchain = Swapchain::new(instance.clone(), &physical_device, &device, &window, surface.clone());
+        let swapchain = Swapchain::new(instance.clone(), &physical_device, &device, &window, &surface);
         Self::transition_swapchain_images(&device, command_pool.clone(), &queue, &swapchain);
 
         let render_pass = RenderPass::new(&device, swapchain.get_format().format);

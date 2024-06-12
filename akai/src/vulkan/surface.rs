@@ -33,7 +33,7 @@ impl Surface {
         }
     }
 
-    pub fn get_vk_surface(&self) -> &SurfaceKHR {
+    pub fn handle(&self) -> &SurfaceKHR {
         &self.surface
     }
 

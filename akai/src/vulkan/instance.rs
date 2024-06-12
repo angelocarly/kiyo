@@ -127,7 +127,7 @@ impl Instance {
         }
     }
 
-    pub fn create_physical_device(&self, surface: Arc<Surface>) -> (PhysicalDevice, u32) {
+    pub fn create_physical_device(&self, surface: &Surface) -> (PhysicalDevice, u32) {
         let physical_devices = unsafe {
             self.instance
                 .enumerate_physical_devices()
@@ -147,7 +147,7 @@ impl Instance {
                                 && surface_loader.get_physical_device_surface_support(
                                     *physical_device,
                                     index as u32,
-                                    *surface.get_vk_surface()
+                                    *surface.handle()
                                 ).unwrap();
                             if supports_graphics_and_surface {
                                 Some((*physical_device, index))

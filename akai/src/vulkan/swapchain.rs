@@ -34,7 +34,7 @@ pub struct Swapchain {
 }
 
 impl Swapchain {
-    pub fn new(instance: Arc<Instance>, physical_device: &vk::PhysicalDevice, device: &Device, window: &Window, surface: Arc<Surface>) -> Swapchain {
+    pub fn new(instance: Arc<Instance>, physical_device: &vk::PhysicalDevice, device: &Device, window: &Window, surface: &Surface) -> Swapchain {
         let swapchain_loader = swapchain::Device::new(instance.get_vk_instance(), device.handle());
 
         let available_formats = surface.get_formats(physical_device);
@@ -83,7 +83,7 @@ impl Swapchain {
             .pre_transform(pre_transform)
             .present_mode(present_mode)
             .min_image_count(desired_image_count)
-            .surface(*surface.get_vk_surface())
+            .surface(*surface.handle())
             .clipped(true)
             .image_array_layers(1);
 
