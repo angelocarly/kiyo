@@ -21,7 +21,7 @@ pub struct GraphicsContext {
 pub struct RenderContext<'a> {
     render_pass: &'a RenderPass,
     framebuffer: &'a Framebuffer,
-    pub command_buffer: Arc<CommandBuffer>,
+    pub command_buffer: &'a CommandBuffer,
 }
 
 impl RenderContext<'_> {
@@ -38,7 +38,7 @@ impl RenderContext<'_> {
 pub struct Application {
     pub render_finished_semaphores: Vec<vk::Semaphore>,
     pub image_available_semaphores: Vec<vk::Semaphore>,
-    pub command_buffers: Vec<Arc<CommandBuffer>>,
+    pub command_buffers: Vec<CommandBuffer>,
     pub command_pool: CommandPool,
     pub queue: Queue,
     pub framebuffers: Vec<Framebuffer>,
@@ -76,8 +76,8 @@ impl Application {
         }).collect::<Vec<Framebuffer>>();
 
         let command_buffers = (0..swapchain.get_image_count()).map(|_| {
-            Arc::new(CommandBuffer::new(&device, &command_pool))
-        }).collect::<Vec<Arc<CommandBuffer>>>();
+            CommandBuffer::new(&device, &command_pool)
+        }).collect::<Vec<CommandBuffer>>();
 
         let image_available_semaphores = (0..swapchain.get_image_count()).map(|_| unsafe {
             let semaphore_create_info = vk::SemaphoreCreateInfo::default();
@@ -145,7 +145,7 @@ impl Application {
                 });
             unsafe {
                 device.handle().cmd_pipeline_barrier(
-                    image_command_buffer.get_vk_command_buffer(),
+                    image_command_buffer.handle(),
                     vk::PipelineStageFlags::TOP_OF_PIPE,
                     vk::PipelineStageFlags::BOTTOM_OF_PIPE,
                     vk::DependencyFlags::empty(),
@@ -159,7 +159,9 @@ impl Application {
         device.submit_single_time_command(*queue, image_command_buffer);
     }
 
-    fn record_command_buffer(&mut self, command_buffer: Arc<CommandBuffer>, frame_index: usize, game_handler: &mut dyn GameHandler) {
+    fn record_command_buffer(&mut self, frame_index: usize, game_handler: &mut dyn GameHandler) {
+
+        let command_buffer = &self.command_buffers[frame_index];
 
         command_buffer.begin();
 
@@ -184,7 +186,7 @@ impl Application {
         let render_context = RenderContext {
             render_pass: &self.graphics_context.render_pass,
             framebuffer: &self.framebuffers[frame_index],
-            command_buffer: command_buffer.clone(),
+            command_buffer: command_buffer,
         };
         game_handler.render(&render_context);
 
@@ -198,7 +200,7 @@ impl Application {
 
         let index = self.swapchain.acquire_next_image(self.image_available_semaphores[self.frame_index]) as usize;
 
-        self.record_command_buffer(self.command_buffers[self.frame_index].clone(), index, game_handler);
+        self.record_command_buffer(self.frame_index, game_handler);
 
         self.graphics_context.device.reset_fence(self.in_flight_fences[self.frame_index]);
         self.graphics_context.device.submit_command_buffer(
@@ -206,7 +208,7 @@ impl Application {
             self.in_flight_fences[self.frame_index],
             self.image_available_semaphores[self.frame_index],
             self.render_finished_semaphores[self.frame_index],
-            self.command_buffers[self.frame_index].clone()
+            &self.command_buffers[self.frame_index]
         );
 
         self.swapchain.queue_present(

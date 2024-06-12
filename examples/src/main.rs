@@ -35,7 +35,7 @@ impl GameHandler for Game {
             unsafe {
                 self.graphics_context.device.handle()
                     .cmd_draw(
-                        render_context.command_buffer.get_vk_command_buffer(),
+                        render_context.command_buffer.handle(),
                         3,
                         1,
                         0,

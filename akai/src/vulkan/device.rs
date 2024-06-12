@@ -94,7 +94,7 @@ impl Device {
         command_buffer: Arc<CommandBuffer>
     ) {
         unsafe {
-            let command_buffers = [command_buffer.get_vk_command_buffer()];
+            let command_buffers = [command_buffer.handle()];
             let submit_info = vk::SubmitInfo::default()
                 .command_buffers(&command_buffers);
 
@@ -126,9 +126,9 @@ impl Device {
         fence: vk::Fence,
         wait_semaphore: vk::Semaphore,
         signal_semaphore: vk::Semaphore,
-        command_buffer: Arc<CommandBuffer>
+        command_buffer: &CommandBuffer
     ) {
-        let command_buffers = [command_buffer.get_vk_command_buffer()];
+        let command_buffers = [command_buffer.handle()];
         let mut submit_info = vk::SubmitInfo::default()
             .command_buffers(&command_buffers);
 

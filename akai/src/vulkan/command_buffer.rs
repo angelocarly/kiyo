@@ -92,7 +92,7 @@ impl CommandBuffer {
                 .cmd_bind_pipeline(self.command_buffer, PipelineBindPoint::GRAPHICS, pipeline.handle());
         }
     }
-    pub fn get_vk_command_buffer(&self) -> vk::CommandBuffer {
+    pub fn handle(&self) -> vk::CommandBuffer {
         self.command_buffer
     }
 }
