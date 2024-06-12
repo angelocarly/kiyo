@@ -15,7 +15,7 @@ pub struct GraphicsContext {
     pub render_pass: RenderPass,
     pub device: Device,
     pub physical_device: PhysicalDevice,
-    pub instance: Arc<Instance>,
+    pub instance: Instance,
 }
 
 pub struct RenderContext<'a> {
@@ -44,7 +44,7 @@ pub struct Application {
     pub framebuffers: Vec<Framebuffer>,
     pub swapchain: Swapchain,
     pub window: Window,
-    pub entry: Arc<ash::Entry>,
+    pub entry: ash::Entry,
     pub surface: Surface,
     pub graphics_context: Arc<GraphicsContext>,
     pub frame_index: usize,
@@ -56,15 +56,15 @@ impl Application {
     pub fn new(event_loop: &EventLoop<()>, window_title: &str, width: u32, height: u32) -> Application {
         let window = Window::create(&event_loop, window_title, width, height);
 
-        let entry = Arc::new(ash::Entry::linked());
-        let instance = Arc::new(Instance::new(entry.clone(), window.display_handle()));
-        let surface = Surface::new(instance.clone(), &window);
-        let (physical_device, queue_family_index) = instance.create_physical_device(&surface);
-        let device = Device::new(instance.clone(), physical_device, queue_family_index);
+        let entry = ash::Entry::linked();
+        let instance = Instance::new(&entry, window.display_handle());
+        let surface = Surface::new(&entry, &instance, &window);
+        let (physical_device, queue_family_index) = instance.create_physical_device(&entry, &surface);
+        let device = Device::new(&instance, physical_device, queue_family_index);
         let queue = device.get_queue(0);
         let command_pool = CommandPool::new(&device, queue_family_index);
 
-        let swapchain = Swapchain::new(instance.clone(), &physical_device, &device, &window, &surface);
+        let swapchain = Swapchain::new(&instance, &physical_device, &device, &window, &surface);
         Self::transition_swapchain_images(&device, &command_pool, &queue, &swapchain);
 
         let render_pass = RenderPass::new(&device, swapchain.get_format().format);
@@ -104,7 +104,7 @@ impl Application {
             render_pass,
             device,
             physical_device,
-            instance: instance.clone(),
+            instance
         });
 
         Self {

@@ -24,7 +24,7 @@ pub struct Device {
 }
 
 impl Device {
-    pub fn new(instance: Arc<Instance>, physical_device: vk::PhysicalDevice, queue_family_index: u32) -> Device {
+    pub fn new(instance: &Instance, physical_device: vk::PhysicalDevice, queue_family_index: u32) -> Device {
         let priorities = [1.0];
 
         let queue_info = vk::DeviceQueueCreateInfo::default()
@@ -48,7 +48,7 @@ impl Device {
             .enabled_features(&features);
 
         let device = unsafe {
-            instance.get_vk_instance()
+            instance.handle()
                 .create_device(physical_device, &device_create_info, None)
         }.unwrap();
 

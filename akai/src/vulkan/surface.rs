@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use ash::khr::surface;
 use ash::vk;
 use ash::vk::{PresentModeKHR, SurfaceCapabilitiesKHR, SurfaceKHR};
@@ -7,19 +6,18 @@ use crate::window::Window;
 
 /// A presentation surface for rendering graphics to a window.
 pub struct Surface {
-    _instance: Arc<Instance>,
     surface: SurfaceKHR,
     surface_loader: surface::Instance,
 }
 
 impl Surface {
-    pub fn new(instance: Arc<Instance>, window: &Window) -> Surface {
-        let surface_loader = surface::Instance::new(&instance.get_entry(), instance.get_vk_instance());
+    pub fn new(entry: &ash::Entry, instance: &Instance, window: &Window) -> Surface {
+        let surface_loader = surface::Instance::new(&entry, instance.handle());
 
         let surface = unsafe {
             ash_window::create_surface(
-                &instance.get_entry(),
-                instance.get_vk_instance(),
+                &entry,
+                instance.handle(),
                 window.display_handle(),
                 window.window_handle(),
                 None,
@@ -27,7 +25,6 @@ impl Surface {
         };
 
         Surface {
-            _instance: instance,
             surface,
             surface_loader,
         }

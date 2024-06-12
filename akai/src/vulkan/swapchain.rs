@@ -34,8 +34,8 @@ pub struct Swapchain {
 }
 
 impl Swapchain {
-    pub fn new(instance: Arc<Instance>, physical_device: &vk::PhysicalDevice, device: &Device, window: &Window, surface: &Surface) -> Swapchain {
-        let swapchain_loader = swapchain::Device::new(instance.get_vk_instance(), device.handle());
+    pub fn new(instance: &Instance, physical_device: &vk::PhysicalDevice, device: &Device, window: &Window, surface: &Surface) -> Swapchain {
+        let swapchain_loader = swapchain::Device::new(instance.handle(), device.handle());
 
         let available_formats = surface.get_formats(physical_device);
         let surface_format = available_formats.iter()

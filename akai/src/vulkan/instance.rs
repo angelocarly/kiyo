@@ -39,15 +39,28 @@ unsafe extern "system" fn vulkan_debug_utils_callback(
 }
 
 /// Vulkan instance. The root interface between the application and the graphics driver.
-pub struct Instance {
-    entry: Arc<Entry>,
+pub struct InstanceInner {
     instance: ash::Instance,
     pub debug_utils: ash::ext::debug_utils::Instance,
     pub debug_utils_messenger: DebugUtilsMessengerEXT,
 }
 
+impl Drop for InstanceInner {
+    fn drop(&mut self) {
+        unsafe {
+            self.debug_utils
+                .destroy_debug_utils_messenger(self.debug_utils_messenger, None);
+            self.instance.destroy_instance(None);
+        }
+    }
+}
+
+pub struct Instance {
+    pub inner: Arc<InstanceInner>,
+}
+
 impl Instance {
-    pub fn new(entry: Arc<Entry>, display_handle: RawDisplayHandle) -> Self {
+    pub fn new(entry: &Entry, display_handle: RawDisplayHandle) -> Self {
         let app_name = CString::new("Akai").unwrap();
         let engine_name = CString::new("Akai Engine").unwrap();
         let app_info = vk::ApplicationInfo::default()
@@ -119,26 +132,29 @@ impl Instance {
             unsafe { debug_utils.create_debug_utils_messenger(&debug_utils_create_info, None) }
                 .expect("Failed to create debug utils messenger");
 
-        Self {
-            entry,
+        let instance_inner = InstanceInner {
             instance,
             debug_utils,
             debug_utils_messenger,
+        };
+
+        Self {
+            inner: Arc::new(instance_inner),
         }
     }
 
-    pub fn create_physical_device(&self, surface: &Surface) -> (PhysicalDevice, u32) {
+    pub fn create_physical_device(&self, entry: &Entry, surface: &Surface) -> (PhysicalDevice, u32) {
         let physical_devices = unsafe {
-            self.instance
+            self.handle()
                 .enumerate_physical_devices()
                 .expect("Failed to enumerate physical devices.")
         };
-        let surface_loader = surface::Instance::new(&self.entry, &self.instance);
+        let surface_loader = surface::Instance::new(&entry, &self.handle());
         let (physical_device, queue_family_index) = physical_devices
             .iter()
             .find_map(|physical_device| {
                 unsafe {
-                    self.instance.get_physical_device_queue_family_properties(*physical_device)
+                    self.handle().get_physical_device_queue_family_properties(*physical_device)
                         .iter()
                         .enumerate()
                         .find_map(|(index, info)| {
@@ -161,21 +177,9 @@ impl Instance {
         (physical_device, queue_family_index as u32)
     }
 
-    pub fn get_vk_instance(&self) -> &ash::Instance {
-        &self.instance
+    pub fn handle(&self) -> &ash::Instance {
+        &self.inner.instance
     }
 
-    pub fn get_entry(&self) -> Arc<Entry> {
-        self.entry.clone()
-    }
 }
 
-impl Drop for Instance {
-    fn drop(&mut self) {
-        unsafe {
-            self.debug_utils
-                .destroy_debug_utils_messenger(self.debug_utils_messenger, None);
-            self.instance.destroy_instance(None);
-        }
-    }
-}
