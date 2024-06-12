@@ -28,7 +28,7 @@ impl CommandPool {
         }
     }
 
-    pub fn get_vk_command_pool(&self) -> vk::CommandPool {
+    pub fn handle(&self) -> vk::CommandPool {
         self.command_pool
     }
 

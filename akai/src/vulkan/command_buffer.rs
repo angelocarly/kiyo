@@ -10,9 +10,9 @@ pub struct CommandBuffer {
 }
 
 impl CommandBuffer {
-    pub fn new(device: &Device, command_pool: Arc<CommandPool>) -> CommandBuffer {
+    pub fn new(device: &Device, command_pool: &CommandPool) -> CommandBuffer {
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo::default()
-            .command_pool(command_pool.get_vk_command_pool())
+            .command_pool(command_pool.handle())
             .level(vk::CommandBufferLevel::PRIMARY)
             .command_buffer_count(1);
 

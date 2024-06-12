@@ -39,7 +39,7 @@ pub struct Application {
     pub render_finished_semaphores: Vec<vk::Semaphore>,
     pub image_available_semaphores: Vec<vk::Semaphore>,
     pub command_buffers: Vec<Arc<CommandBuffer>>,
-    pub command_pool: Arc<CommandPool>,
+    pub command_pool: CommandPool,
     pub queue: Queue,
     pub framebuffers: Vec<Framebuffer>,
     pub swapchain: Swapchain,
@@ -62,10 +62,10 @@ impl Application {
         let (physical_device, queue_family_index) = instance.create_physical_device(&surface);
         let device = Device::new(instance.clone(), physical_device, queue_family_index);
         let queue = device.get_queue(0);
-        let command_pool = Arc::new(CommandPool::new(&device, queue_family_index));
+        let command_pool = CommandPool::new(&device, queue_family_index);
 
         let swapchain = Swapchain::new(instance.clone(), &physical_device, &device, &window, &surface);
-        Self::transition_swapchain_images(&device, command_pool.clone(), &queue, &swapchain);
+        Self::transition_swapchain_images(&device, &command_pool, &queue, &swapchain);
 
         let render_pass = RenderPass::new(&device, swapchain.get_format().format);
 
@@ -76,7 +76,7 @@ impl Application {
         }).collect::<Vec<Framebuffer>>();
 
         let command_buffers = (0..swapchain.get_image_count()).map(|_| {
-            Arc::new(CommandBuffer::new(&device, command_pool.clone()))
+            Arc::new(CommandBuffer::new(&device, &command_pool))
         }).collect::<Vec<Arc<CommandBuffer>>>();
 
         let image_available_semaphores = (0..swapchain.get_image_count()).map(|_| unsafe {
@@ -124,8 +124,8 @@ impl Application {
         }
     }
 
-    fn transition_swapchain_images(device: &Device, command_pool: Arc<CommandPool>, queue: &Queue, swapchain: &Swapchain) {
-        let image_command_buffer = Arc::new(CommandBuffer::new(device, command_pool.clone()));
+    fn transition_swapchain_images(device: &Device, command_pool: &CommandPool, queue: &Queue, swapchain: &Swapchain) {
+        let image_command_buffer = Arc::new(CommandBuffer::new(device, command_pool));
         image_command_buffer.begin();
         swapchain.get_images().iter().for_each(|image| {
             let image_memory_barrier = vk::ImageMemoryBarrier::default()
