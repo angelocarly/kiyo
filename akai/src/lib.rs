@@ -2,4 +2,5 @@ extern crate shaderc;
 
 pub mod application;
 pub mod vulkan;
-mod window;
+pub mod window;
+pub mod renderer;
