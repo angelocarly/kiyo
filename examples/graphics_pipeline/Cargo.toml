@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-akai = { path = "../akai" }
+akai = { path = "../../akai" }
 winit = "0.29.15"
