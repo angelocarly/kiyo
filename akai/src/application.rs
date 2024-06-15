@@ -62,7 +62,9 @@ impl Application {
             })
             .unwrap();
 
-        unsafe { renderer.device.handle().device_wait_idle().unwrap(); }
+        // Wait for all render operations to finish before exiting
+        // This ensures we can safely start dropping gpu resources
+        renderer.device.wait_idle();
     }
 }
 

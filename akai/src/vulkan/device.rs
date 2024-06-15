@@ -70,6 +70,12 @@ impl Device {
         unsafe { self.handle().get_device_queue(self.inner.queue_family_index, queue_index) }
     }
 
+    pub fn wait_idle(&self) {
+        unsafe {
+            self.handle().device_wait_idle().unwrap();
+        }
+    }
+
     pub fn wait_for_fence(&self, fence: vk::Fence) {
         unsafe {
             let fences = [fence];
