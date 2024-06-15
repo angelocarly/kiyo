@@ -1,10 +1,9 @@
 use std::ffi::CString;
-use std::fs;
 use std::sync::Arc;
 use ash::vk;
-use ash::vk::{ShaderModule};
 use crate::vulkan::{Device, Pipeline, RenderPass};
 use crate::vulkan::device::DeviceInner;
+use crate::vulkan::pipeline::{create_shader_module, load_from_file};
 
 pub struct GraphicsPipelineInner {
     pub pipeline_layout: vk::PipelineLayout,
@@ -37,51 +36,14 @@ impl Pipeline for GraphicsPipeline {
 
 impl GraphicsPipeline {
 
-    fn create_shader_module(device: &ash::Device, code: Vec<u32>) -> ShaderModule {
-        let shader_module_create_info = vk::ShaderModuleCreateInfo::default()
-            .code(unsafe { std::slice::from_raw_parts(code.as_ptr(), code.len()) });
-
-        unsafe {
-            device
-                .create_shader_module(&shader_module_create_info, None)
-                .expect("Failed to create shader module")
-        }
-    }
-
-    fn load_from_file(source_file: String) -> Vec<u32>
-    {
-        use shaderc;
-
-        let shader_kind = match source_file.split(".").last() {
-            Some("vert") => shaderc::ShaderKind::Vertex,
-            Some("frag") => shaderc::ShaderKind::Fragment,
-            _ => panic!("Unknown shader type")
-        };
-
-        let source = fs::read_to_string(source_file.clone()).expect(format!("Failed to read file: {}", source_file).as_str());
-
-        let compiler = shaderc::Compiler::new().unwrap();
-        let mut options = shaderc::CompileOptions::new().unwrap();
-        options.add_macro_definition("EP", Some("main"));
-        let binary_result = compiler.compile_into_spirv(
-            source.as_str(),
-            shader_kind,
-            source_file.as_str(),
-            "main",
-            Some(&options)
-        ).unwrap();
-
-        binary_result.as_binary().to_vec()
-    }
-
     pub fn new(device: &Device, render_pass: &RenderPass, vertex_shader_source: String, fragment_shader_source: String) -> Self {
 
-        let vertex_shader_code = Self::load_from_file(vertex_shader_source);
-        let fragment_shader_code = Self::load_from_file(fragment_shader_source);
+        let vertex_shader_code = load_from_file(vertex_shader_source);
+        let fragment_shader_code = load_from_file(fragment_shader_source);
 
         // Shaders
-        let vertex_shader_module = Self::create_shader_module(device.handle(), vertex_shader_code.to_vec());
-        let fragment_shader_module = Self::create_shader_module(device.handle(), fragment_shader_code.to_vec());
+        let vertex_shader_module = create_shader_module(device.handle(), vertex_shader_code.to_vec());
+        let fragment_shader_module = create_shader_module(device.handle(), fragment_shader_code.to_vec());
 
         let binding = CString::new("main").unwrap();
         let shader_stages = [
