@@ -39,7 +39,7 @@ impl Application {
 
     pub fn run(self, mut event_loop: EventLoop<()>, renderer: &mut Renderer, window: &mut Window, game_handler: &mut dyn GameHandler) {
         event_loop
-            .run_on_demand(move |event, elwt| {
+            .run_on_demand( |event, elwt| {
                 elwt.set_control_flow(ControlFlow::Poll);
 
                 match event {
@@ -60,7 +60,9 @@ impl Application {
                 }
 
             })
-            .unwrap()
+            .unwrap();
+
+        unsafe { renderer.device.handle().device_wait_idle().unwrap(); }
     }
 }
 
