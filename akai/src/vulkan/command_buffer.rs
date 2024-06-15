@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use ash::vk;
-use ash::vk::PipelineBindPoint;
-use crate::vulkan::{CommandPool, Device, Framebuffer, GraphicsPipeline, RenderPass};
+use crate::vulkan::{CommandPool, Device, Framebuffer, Pipeline, RenderPass};
 use crate::vulkan::device::DeviceInner;
 
 pub struct CommandBuffer {
@@ -86,12 +85,20 @@ impl CommandBuffer {
         }
     }
 
-    pub fn bind_pipeline(&self, pipeline: &GraphicsPipeline) {
+    pub fn bind_pipeline(&self, pipeline: &dyn Pipeline) {
         unsafe {
             self.device_dep.device
-                .cmd_bind_pipeline(self.command_buffer, PipelineBindPoint::GRAPHICS, pipeline.handle());
+                .cmd_bind_pipeline(self.command_buffer, pipeline.bind_point(), pipeline.handle());
         }
     }
+
+    pub fn dispatch(&self, x: u32, y: u32, z: u32) {
+        unsafe {
+            self.device_dep.device
+                .cmd_dispatch(self.command_buffer, x, y, z);
+        }
+    }
+
     pub fn handle(&self) -> vk::CommandBuffer {
         self.command_buffer
     }

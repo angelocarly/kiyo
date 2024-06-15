@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "examples/graphics_pipeline",
+    "examples/compute_pipeline",
     "akai"
 ]
 resolver = "2"

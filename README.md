@@ -40,7 +40,7 @@ Then build `akai`:
 ```
 git clone https://github.com/angelocarly/akai.git
 cd akai
-cargo run
+cargo run --bin compute_test
 ```
 
 ## Libraries

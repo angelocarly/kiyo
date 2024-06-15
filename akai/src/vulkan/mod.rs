@@ -7,12 +7,16 @@ mod renderpass;
 mod framebuffer;
 mod command_pool;
 mod command_buffer;
+mod compute_pipeline;
+mod pipeline;
 
 pub use self::device::Device;
 pub use self::instance::Instance;
 pub use self::surface::Surface;
 pub use self::swapchain::Swapchain;
+pub use self::pipeline::Pipeline;
 pub use self::graphics_pipeline::GraphicsPipeline;
+pub use self::compute_pipeline::ComputePipeline;
 pub use self::renderpass::RenderPass;
 pub use self::framebuffer::Framebuffer;
 pub use self::command_pool::CommandPool;

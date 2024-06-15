@@ -2,8 +2,8 @@ use std::ffi::CString;
 use std::fs;
 use std::sync::Arc;
 use ash::vk;
-use ash::vk::{Pipeline, ShaderModule};
-use crate::vulkan::{Device, RenderPass};
+use ash::vk::{ShaderModule};
+use crate::vulkan::{Device, Pipeline, RenderPass};
 use crate::vulkan::device::DeviceInner;
 
 pub struct GraphicsPipelineInner {
@@ -23,6 +23,16 @@ impl Drop for GraphicsPipelineInner {
 
 pub struct GraphicsPipeline {
     inner: Arc<GraphicsPipelineInner>
+}
+
+impl Pipeline for GraphicsPipeline {
+    fn handle(&self) -> vk::Pipeline {
+        self.inner.graphics_pipeline
+    }
+
+    fn bind_point(&self) -> vk::PipelineBindPoint {
+        vk::PipelineBindPoint::GRAPHICS
+    }
 }
 
 impl GraphicsPipeline {
@@ -62,10 +72,6 @@ impl GraphicsPipeline {
         ).unwrap();
 
         binary_result.as_binary().to_vec()
-    }
-
-    pub fn handle(&self) -> Pipeline {
-        self.inner.graphics_pipeline
     }
 
     pub fn new(device: &Device, render_pass: &RenderPass, vertex_shader_source: String, fragment_shader_source: String) -> Self {
