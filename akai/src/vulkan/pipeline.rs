@@ -5,6 +5,7 @@ use ash::vk::ShaderModule;
 pub trait Pipeline {
     fn handle(&self) -> vk::Pipeline;
     fn bind_point(&self) -> vk::PipelineBindPoint;
+    fn layout(&self) -> vk::PipelineLayout;
 }
 
 pub fn create_shader_module(device: &ash::Device, code: Vec<u32>) -> ShaderModule {

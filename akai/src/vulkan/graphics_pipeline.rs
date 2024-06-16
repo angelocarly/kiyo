@@ -32,6 +32,10 @@ impl Pipeline for GraphicsPipeline {
     fn bind_point(&self) -> vk::PipelineBindPoint {
         vk::PipelineBindPoint::GRAPHICS
     }
+
+    fn layout(&self) -> vk::PipelineLayout {
+        self.inner.pipeline_layout
+    }
 }
 
 impl GraphicsPipeline {

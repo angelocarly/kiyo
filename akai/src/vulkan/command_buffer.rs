@@ -99,6 +99,20 @@ impl CommandBuffer {
         }
     }
 
+    pub fn bind_descriptor_sets(&self, pipeline: &dyn Pipeline, descriptor_sets: &[vk::DescriptorSet]) {
+        unsafe {
+            self.device_dep.device
+                .cmd_bind_descriptor_sets(
+                    self.command_buffer,
+                    pipeline.bind_point(),
+                    pipeline.layout(),
+                    0,
+                    descriptor_sets,
+                    &[]
+                );
+        }
+    }
+
     pub fn handle(&self) -> vk::CommandBuffer {
         self.command_buffer
     }

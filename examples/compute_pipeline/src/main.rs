@@ -1,5 +1,5 @@
 use akai::application::{Application, GameHandler, RenderContext};
-use akai::vulkan::{ComputePipeline};
+use akai::vulkan::{ComputePipeline, Image};
 use winit::event_loop::EventLoop;
 use akai::renderer::Renderer;
 use akai::window::Window;
@@ -26,6 +26,7 @@ impl GameHandler for Game {
 
         render_context.command_buffer.bind_pipeline(&self.compute_pipeline);
         render_context.command_buffer.dispatch(1, 1, 1);
+        //render_context.command_buffer.bind_descriptor_sets(&self.compute_pipeline, &[]);
 
         render_context.begin_root_render_pass();
         {

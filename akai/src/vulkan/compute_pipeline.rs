@@ -32,6 +32,10 @@ impl Pipeline for ComputePipeline {
     fn bind_point(&self) -> vk::PipelineBindPoint {
         vk::PipelineBindPoint::COMPUTE
     }
+
+    fn layout(&self) -> vk::PipelineLayout {
+        self.inner.pipeline_layout
+    }
 }
 
 impl ComputePipeline {
