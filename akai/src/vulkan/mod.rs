@@ -10,11 +10,13 @@ mod command_buffer;
 mod compute_pipeline;
 mod pipeline;
 mod image;
+mod descriptor_set_layout;
 
 pub use self::command_buffer::CommandBuffer;
 pub use self::command_pool::CommandPool;
 pub use self::compute_pipeline::ComputePipeline;
 pub use self::device::Device;
+pub use self::descriptor_set_layout::DescriptorSetLayout;
 pub use self::framebuffer::Framebuffer;
 pub use self::graphics_pipeline::GraphicsPipeline;
 pub use self::image::Image;
