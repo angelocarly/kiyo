@@ -1,8 +1,9 @@
 use std::sync::Arc;
 use ash::vk;
 use ash::vk::{FenceCreateFlags, PhysicalDevice, Queue};
+use gpu_allocator::vulkan::{AllocatorCreateDesc};
 use crate::application::{GameHandler, RenderContext};
-use crate::vulkan::{CommandBuffer, CommandPool, Device, Framebuffer, Instance, RenderPass, Surface, Swapchain};
+use crate::vulkan::{Allocator, CommandBuffer, CommandPool, Device, Framebuffer, Instance, RenderPass, Surface, Swapchain};
 use crate::window::Window;
 
 pub struct Renderer {
@@ -21,6 +22,7 @@ pub struct Renderer {
     pub device: Device,
     pub physical_device: PhysicalDevice,
     pub instance: Instance,
+    pub allocator: Allocator,
 }
 
 impl Renderer {
@@ -32,6 +34,15 @@ impl Renderer {
         let device = Device::new(&instance, physical_device, queue_family_index);
         let queue = device.get_queue(0);
         let command_pool = CommandPool::new(&device, queue_family_index);
+
+        let mut allocator = Allocator::new(&AllocatorCreateDesc {
+            instance: instance.handle().clone(),
+            device: device.handle().clone(),
+            physical_device,
+            debug_settings: Default::default(),
+            buffer_device_address: true,  // Ideally, check the BufferDeviceAddressFeatures struct.
+            allocation_sizes: Default::default(),
+        });
 
         let swapchain = Swapchain::new(&instance, &physical_device, &device, &window, &surface);
         Self::transition_swapchain_images(&device, &command_pool, &queue, &swapchain);
@@ -74,6 +85,7 @@ impl Renderer {
             device,
             physical_device,
             instance,
+            allocator,
             render_pass,
             surface,
             queue,

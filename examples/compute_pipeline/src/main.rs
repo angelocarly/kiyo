@@ -18,6 +18,7 @@ impl Game {
 
         let image = Image::new(
             &renderer.device,
+            &renderer.allocator,
             800,
             600
         );

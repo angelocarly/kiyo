@@ -1,15 +1,19 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use ash::vk;
 use ash::vk::{ComponentMapping, ImageAspectFlags};
-use crate::vulkan::Device;
+use gpu_allocator::MemoryLocation;
+use gpu_allocator::vulkan::{Allocation, AllocationScheme};
+use crate::vulkan::{Allocator, Device};
+use crate::vulkan::allocator::AllocatorInner;
 use crate::vulkan::device::DeviceInner;
 
 pub struct Image {
     pub device_dep: Arc<DeviceInner>,
+    pub allocator_dep: Arc<Mutex<AllocatorInner>>,
     pub(crate) image: vk::Image,
     pub(crate) image_view: vk::ImageView,
     pub(crate) sampler: vk::Sampler,
-    // TODO: Add image memory
+    pub allocation: Allocation,
 }
 
 impl Drop for Image {
@@ -17,13 +21,14 @@ impl Drop for Image {
         unsafe {
             self.device_dep.device.destroy_sampler(self.sampler, None);
             self.device_dep.device.destroy_image_view(self.image_view, None);
+            self.allocator_dep.lock().unwrap().allocator.free(self.allocation);
             self.device_dep.device.destroy_image(self.image, None);
         }
     }
 }
 
 impl Image {
-    pub fn new(device: &Device, width: u32, height: u32) -> Image {
+    pub fn new(device: &Device, allocator: &mut Allocator, width: u32, height: u32) -> Image {
         let create_info = vk::ImageCreateInfo::default()
             .extent(vk::Extent3D {
                 width,
@@ -43,6 +48,22 @@ impl Image {
             device.handle().create_image(&create_info, None)
                 .expect("Failed to create image")
         };
+
+        // Allocate memory
+        let requirements = unsafe { device.handle().get_image_memory_requirements(image) };
+        let allocation = allocator.handle()
+            .allocate(&gpu_allocator::vulkan::AllocationCreateDesc {
+                name: "Image",
+                requirements,
+                location: MemoryLocation::GpuOnly,
+                linear: false,
+                allocation_scheme: AllocationScheme::GpuAllocatorManaged,
+            }).unwrap();
+
+        unsafe {
+            device.handle().bind_image_memory(image, allocation.memory(), allocation.offset())
+            .expect("Failed to bind image memory")
+        }
 
         let image_view_create_info = vk::ImageViewCreateInfo::default()
             .format(vk::Format::R8G8B8A8_UNORM)
@@ -78,7 +99,9 @@ impl Image {
             image,
             image_view,
             sampler,
+            allocation,
             device_dep: device.inner.clone(),
+            allocator_dep: allocator.inner.clone(),
         }
     }
 }

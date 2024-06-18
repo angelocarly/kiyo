@@ -11,7 +11,9 @@ mod compute_pipeline;
 mod pipeline;
 mod image;
 mod descriptor_set_layout;
+mod allocator;
 
+pub use self::allocator::Allocator;
 pub use self::command_buffer::CommandBuffer;
 pub use self::command_pool::CommandPool;
 pub use self::compute_pipeline::ComputePipeline;
