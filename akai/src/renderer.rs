@@ -19,10 +19,10 @@ pub struct Renderer {
     pub frame_index: usize,
     pub in_flight_fences: Vec<vk::Fence>,
     pub render_pass: RenderPass,
+    pub allocator: Allocator,
     pub device: Device,
     pub physical_device: PhysicalDevice,
     pub instance: Instance,
-    pub allocator: Allocator,
 }
 
 impl Renderer {
@@ -40,7 +40,7 @@ impl Renderer {
             device: device.handle().clone(),
             physical_device,
             debug_settings: Default::default(),
-            buffer_device_address: true,  // Ideally, check the BufferDeviceAddressFeatures struct.
+            buffer_device_address: false,  // Ideally, check the BufferDeviceAddressFeatures struct.
             allocation_sizes: Default::default(),
         });
 

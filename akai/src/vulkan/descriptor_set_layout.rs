@@ -17,18 +17,20 @@ impl Drop for DescriptorSetLayout {
 }
 
 impl DescriptorSetLayout {
-    pub fn new(device: &Device) -> DescriptorSetLayout {
+
+    fn create(device: &Device, flags: vk::DescriptorSetLayoutCreateFlags ) -> DescriptorSetLayout {
 
         // TODO: Pass this through somehow, I'd rather keep ash code inside of akai
         let layout_bindings = &[
             vk::DescriptorSetLayoutBinding::default()
                 .binding(0)
-                .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+                .descriptor_type(vk::DescriptorType::STORAGE_IMAGE)
                 .descriptor_count(1)
-                .stage_flags(vk::ShaderStageFlags::VERTEX),
+                .stage_flags(vk::ShaderStageFlags::COMPUTE)
         ];
 
         let layout_create_info = vk::DescriptorSetLayoutCreateInfo::default()
+            .flags(vk::DescriptorSetLayoutCreateFlags::PUSH_DESCRIPTOR_KHR)
             .bindings(layout_bindings);
 
         let layout = unsafe {
@@ -41,5 +43,17 @@ impl DescriptorSetLayout {
             device_dep: device.inner.clone(),
             layout,
         }
+    }
+
+    pub fn new(device: &Device) -> DescriptorSetLayout {
+        DescriptorSetLayout::create(device, vk::DescriptorSetLayoutCreateFlags::empty())
+    }
+
+    pub fn new_push_descriptor(device: &Device) -> DescriptorSetLayout {
+        DescriptorSetLayout::create(device, vk::DescriptorSetLayoutCreateFlags::PUSH_DESCRIPTOR_KHR)
+    }
+
+    pub(crate) fn handle(&self) -> vk::DescriptorSetLayout {
+        self.layout
     }
 }

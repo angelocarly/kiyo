@@ -13,7 +13,7 @@ pub struct Image {
     pub(crate) image: vk::Image,
     pub(crate) image_view: vk::ImageView,
     pub(crate) sampler: vk::Sampler,
-    pub allocation: Allocation,
+    pub allocation: Option<Allocation>,
 }
 
 impl Drop for Image {
@@ -21,7 +21,9 @@ impl Drop for Image {
         unsafe {
             self.device_dep.device.destroy_sampler(self.sampler, None);
             self.device_dep.device.destroy_image_view(self.image_view, None);
-            self.allocator_dep.lock().unwrap().allocator.free(self.allocation);
+            if let Some(allocation) = self.allocation.take() {
+                self.allocator_dep.lock().unwrap().allocator.free(allocation);
+            }
             self.device_dep.device.destroy_image(self.image, None);
         }
     }
@@ -29,6 +31,8 @@ impl Drop for Image {
 
 impl Image {
     pub fn new(device: &Device, allocator: &mut Allocator, width: u32, height: u32) -> Image {
+
+        // Image
         let create_info = vk::ImageCreateInfo::default()
             .extent(vk::Extent3D {
                 width,
@@ -51,12 +55,12 @@ impl Image {
 
         // Allocate memory
         let requirements = unsafe { device.handle().get_image_memory_requirements(image) };
-        let allocation = allocator.handle()
+        let allocation = allocator.handle().allocator
             .allocate(&gpu_allocator::vulkan::AllocationCreateDesc {
                 name: "Image",
                 requirements,
-                location: MemoryLocation::GpuOnly,
-                linear: false,
+                location: MemoryLocation::CpuToGpu,
+                linear: true,
                 allocation_scheme: AllocationScheme::GpuAllocatorManaged,
             }).unwrap();
 
@@ -65,6 +69,7 @@ impl Image {
             .expect("Failed to bind image memory")
         }
 
+        // Image view
         let image_view_create_info = vk::ImageViewCreateInfo::default()
             .format(vk::Format::R8G8B8A8_UNORM)
             .image(image)
@@ -90,6 +95,7 @@ impl Image {
 
         let sampler_create_info = vk::SamplerCreateInfo::default();
 
+        // Sampler
         let sampler = unsafe {
             device.handle().create_sampler(&sampler_create_info, None)
                 .expect("Failed to create sampler")
@@ -99,7 +105,7 @@ impl Image {
             image,
             image_view,
             sampler,
-            allocation,
+            allocation: Some(allocation),
             device_dep: device.inner.clone(),
             allocator_dep: allocator.inner.clone(),
         }

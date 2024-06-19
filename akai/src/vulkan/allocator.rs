@@ -1,8 +1,16 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use gpu_allocator::vulkan::AllocatorCreateDesc;
 
 pub struct AllocatorInner {
     pub allocator: gpu_allocator::vulkan::Allocator,
+}
+
+impl Drop for AllocatorInner {
+    fn drop(&mut self) {
+        unsafe {
+            println!("Dropping allocator");
+        }
+    }
 }
 
 pub struct Allocator {
@@ -16,7 +24,7 @@ impl Allocator {
         }
     }
 
-    pub fn handle(&self) -> &mut gpu_allocator::vulkan::Allocator {
-        &mut self.inner.lock().unwrap().allocator
+    pub fn handle(&self) -> MutexGuard<'_, AllocatorInner> {
+        self.inner.lock().unwrap()
     }
 }

@@ -34,6 +34,9 @@ impl Device {
 
         let device_extension_names_raw = [
             swapchain::NAME.as_ptr(),
+            // Push descriptors
+            ash::khr::push_descriptor::NAME.as_ptr(),
+            // MoltenVK
             #[cfg(target_os = "macos")]
                 ash::khr::portability_subset::NAME.as_ptr(),
         ];

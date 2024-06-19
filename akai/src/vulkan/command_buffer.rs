@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use ash::vk;
 use ash::vk::WriteDescriptorSet;
-use crate::vulkan::{CommandPool, Device, Framebuffer, Image, Pipeline, RenderPass};
+use crate::vulkan::{CommandPool, DescriptorSetLayout, Device, Framebuffer, Image, Pipeline, RenderPass};
 use crate::vulkan::device::DeviceInner;
 
 pub struct CommandBuffer {
@@ -65,17 +65,18 @@ impl CommandBuffer {
         }
     }
 
-    pub fn bind_push_descriptor_image(&self, pipeline: &dyn Pipeline, image: &Image) {
+    pub fn bind_push_descriptor_image(&self, pipeline: &dyn Pipeline, layout: &DescriptorSetLayout, image: &Image) {
 
+        // TODO: Set bindings dynamically
         let bindings = [vk::DescriptorImageInfo::default()
-            .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+            .image_layout(vk::ImageLayout::GENERAL)
             .image_view(image.image_view)
             .sampler(image.sampler)];
 
         let write_descriptor_set = WriteDescriptorSet::default()
             .dst_binding(0)
             .dst_array_element(0)
-            .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+            .descriptor_type(vk::DescriptorType::STORAGE_IMAGE)
             .image_info(&bindings);
 
         unsafe {
