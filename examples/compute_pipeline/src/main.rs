@@ -7,13 +7,13 @@ use akai::window::Window;
 struct Game {
     image: Image,
     compute_pipeline: ComputePipeline,
-    descriptor_set_layout: DescriptorSetLayout,
+    _descriptor_set_layout: DescriptorSetLayout,
 }
 
 impl Game {
     pub fn new(renderer: &mut Renderer) -> Game{
 
-        let descriptor_set_layout = DescriptorSetLayout::new(
+        let descriptor_set_layout = DescriptorSetLayout::new_push_descriptor(
             &renderer.device
         );
 
@@ -32,8 +32,8 @@ impl Game {
 
         Game {
             image,
-            descriptor_set_layout,
             compute_pipeline,
+            _descriptor_set_layout: descriptor_set_layout
         }
     }
 }
@@ -43,7 +43,7 @@ impl GameHandler for Game {
     fn render(&mut self, render_context: &RenderContext) {
 
         render_context.command_buffer.bind_pipeline(&self.compute_pipeline);
-        render_context.command_buffer.bind_push_descriptor_image(&self.compute_pipeline, &self.descriptor_set_layout, &self.image);
+        render_context.command_buffer.bind_push_descriptor_image(&self.compute_pipeline, &self.image);
         render_context.command_buffer.dispatch(1, 1, 1);
 
         render_context.begin_root_render_pass();

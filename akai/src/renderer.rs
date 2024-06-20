@@ -35,7 +35,7 @@ impl Renderer {
         let queue = device.get_queue(0);
         let command_pool = CommandPool::new(&device, queue_family_index);
 
-        let mut allocator = Allocator::new(&AllocatorCreateDesc {
+        let allocator = Allocator::new(&AllocatorCreateDesc {
             instance: instance.handle().clone(),
             device: device.handle().clone(),
             physical_device,

@@ -30,7 +30,7 @@ impl DescriptorSetLayout {
         ];
 
         let layout_create_info = vk::DescriptorSetLayoutCreateInfo::default()
-            .flags(vk::DescriptorSetLayoutCreateFlags::PUSH_DESCRIPTOR_KHR)
+            .flags(flags)
             .bindings(layout_bindings);
 
         let layout = unsafe {

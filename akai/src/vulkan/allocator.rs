@@ -7,9 +7,6 @@ pub struct AllocatorInner {
 
 impl Drop for AllocatorInner {
     fn drop(&mut self) {
-        unsafe {
-            println!("Dropping allocator");
-        }
     }
 }
 

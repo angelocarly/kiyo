@@ -22,7 +22,7 @@ impl Drop for Image {
             self.device_dep.device.destroy_sampler(self.sampler, None);
             self.device_dep.device.destroy_image_view(self.image_view, None);
             if let Some(allocation) = self.allocation.take() {
-                self.allocator_dep.lock().unwrap().allocator.free(allocation);
+                self.allocator_dep.lock().unwrap().allocator.free(allocation).unwrap();
             }
             self.device_dep.device.destroy_image(self.image, None);
         }
@@ -59,7 +59,7 @@ impl Image {
             .allocate(&gpu_allocator::vulkan::AllocationCreateDesc {
                 name: "Image",
                 requirements,
-                location: MemoryLocation::CpuToGpu,
+                location: MemoryLocation::GpuOnly,
                 linear: true,
                 allocation_scheme: AllocationScheme::GpuAllocatorManaged,
             }).unwrap();
