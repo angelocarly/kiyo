@@ -17,6 +17,7 @@ impl Game {
                 &renderer.render_pass,
                 "examples/graphics_pipeline/shaders/test_shader.vert".to_string(),
                 "examples/graphics_pipeline/shaders/test_shader.frag".to_string(),
+                &[]
             )
         }
     }
