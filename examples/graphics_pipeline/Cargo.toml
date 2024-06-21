@@ -1,8 +1,0 @@
-[package]
-name = "graphics_test"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-akai = { path = "../../akai" }
-winit = "0.29.15"

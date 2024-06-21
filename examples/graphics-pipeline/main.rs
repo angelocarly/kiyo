@@ -15,8 +15,8 @@ impl Game {
             graphics_pipeline: GraphicsPipeline::new(
                 &renderer.device,
                 &renderer.render_pass,
-                "examples/graphics_pipeline/shaders/test_shader.vert".to_string(),
-                "examples/graphics_pipeline/shaders/test_shader.frag".to_string(),
+                "examples/graphics-pipeline/shaders/test_shader.vert".to_string(),
+                "examples/graphics-pipeline/shaders/test_shader.frag".to_string(),
                 &[]
             )
         }

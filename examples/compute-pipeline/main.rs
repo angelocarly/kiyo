@@ -29,15 +29,15 @@ impl Game {
 
         let compute_pipeline = ComputePipeline::new(
              &renderer.device,
-             "examples/compute_pipeline/shaders/test_shader.comp".to_string(),
+             "examples/compute-pipeline/shaders/test_shader.comp".to_string(),
              &[&descriptor_set_layout],
         );
 
         let graphics_pipeline = GraphicsPipeline::new(
             &renderer.device,
             &renderer.render_pass,
-            "examples/compute_pipeline/shaders/test_shader.vert".to_string(),
-            "examples/compute_pipeline/shaders/test_shader.frag".to_string(),
+            "examples/compute-pipeline/shaders/test_shader.vert".to_string(),
+            "examples/compute-pipeline/shaders/test_shader.frag".to_string(),
             &[&descriptor_set_layout]
         );
 

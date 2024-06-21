@@ -29,7 +29,7 @@ Then build `akai`:
 ```
 git clone https://github.com/angelocarly/akai.git
 cd akai
-cargo run --bin compute_test
+cargo run --example compute-pipeline
 ```
 
 ## Libraries
