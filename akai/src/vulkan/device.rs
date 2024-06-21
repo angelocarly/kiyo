@@ -7,6 +7,7 @@ use crate::vulkan::{CommandBuffer, Instance};
 /// A connection to a physical GPU.
 pub struct DeviceInner {
     pub device: ash::Device,
+    pub device_push_descriptor: ash::khr::push_descriptor::Device,
     pub queue_family_index: u32,
 }
 
@@ -33,6 +34,9 @@ impl Device {
 
         let device_extension_names_raw = [
             swapchain::NAME.as_ptr(),
+            // Push descriptors
+            ash::khr::push_descriptor::NAME.as_ptr(),
+            // MoltenVK
             #[cfg(target_os = "macos")]
                 ash::khr::portability_subset::NAME.as_ptr(),
         ];
@@ -52,8 +56,11 @@ impl Device {
                 .create_device(physical_device, &device_create_info, None)
         }.unwrap();
 
+        let device_push_descriptor = ash::khr::push_descriptor::Device::new(instance.handle(), &device);
+
         let device_inner = DeviceInner {
             device,
+            device_push_descriptor,
             queue_family_index,
         };
 

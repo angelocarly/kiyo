@@ -11,3 +11,4 @@ ash-window = "0.13.0"
 winit = "0.29.15"
 shaderc = "0.8.3"
 log = "0.4.21"
+gpu-allocator = { git = "https://github.com/Traverse-Research/gpu-allocator.git", rev = "4b5c0d4" }

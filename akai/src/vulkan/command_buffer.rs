@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use ash::vk;
-use crate::vulkan::{CommandPool, Device, Framebuffer, Pipeline, RenderPass};
+use ash::vk::WriteDescriptorSet;
+use crate::vulkan::{CommandPool, Device, Framebuffer, Image, Pipeline, RenderPass};
 use crate::vulkan::device::DeviceInner;
 
 pub struct CommandBuffer {
@@ -61,6 +62,43 @@ impl CommandBuffer {
         unsafe {
             self.device_dep.device
                 .cmd_begin_render_pass(self.command_buffer, &render_pass_begin_info, vk::SubpassContents::INLINE);
+        }
+    }
+
+    pub fn bind_push_descriptor_image(&self, pipeline: &dyn Pipeline, image: &Image) {
+
+        // TODO: Set bindings dynamically
+        let bindings = [vk::DescriptorImageInfo::default()
+            .image_layout(vk::ImageLayout::GENERAL)
+            .image_view(image.image_view)
+            .sampler(image.sampler)];
+
+        let write_descriptor_set = WriteDescriptorSet::default()
+            .dst_binding(0)
+            .dst_array_element(0)
+            .descriptor_type(vk::DescriptorType::STORAGE_IMAGE)
+            .image_info(&bindings);
+
+        unsafe {
+            self.device_dep.device_push_descriptor.cmd_push_descriptor_set(
+                self.command_buffer,
+                pipeline.bind_point(),
+                pipeline.layout(),
+                0,
+                &[write_descriptor_set]
+            );
+        }
+    }
+
+    pub fn bind_push_descriptor(&self, pipeline: &dyn Pipeline, set: u32, write_descriptor_set: WriteDescriptorSet) {
+        unsafe {
+            self.device_dep.device_push_descriptor.cmd_push_descriptor_set(
+                self.command_buffer,
+                pipeline.bind_point(),
+                pipeline.layout(),
+                set,
+                &[write_descriptor_set]
+            );
         }
     }
 

@@ -75,6 +75,7 @@ impl Instance {
                 .unwrap()
                 .to_vec();
         extension_names.push(debug_utils::NAME.as_ptr());
+        extension_names.push(ash::khr::get_physical_device_properties2::NAME.as_ptr());
 
         #[cfg(target_os = "macos")]
         {
