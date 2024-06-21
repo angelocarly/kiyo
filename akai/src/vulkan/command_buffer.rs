@@ -123,6 +123,27 @@ impl CommandBuffer {
         }
     }
 
+    pub fn clear_color_image(&self, image: &Image) {
+        unsafe {
+            let mut clear_color_value = vk::ClearColorValue::default();
+            clear_color_value.float32 = [ 0f32, 0f32, 0f32, 0f32];
+            let sub_resource_ranges = [ vk::ImageSubresourceRange::default()
+                .aspect_mask(vk::ImageAspectFlags::COLOR)
+                .base_array_layer(0)
+                .base_mip_level(0)
+                .layer_count(1)
+                .level_count(1) ];
+            self.device_dep.device
+                .cmd_clear_color_image(
+                    self.command_buffer,
+                    image.image,
+                    vk::ImageLayout::GENERAL,
+                    &clear_color_value,
+                    &sub_resource_ranges
+                )
+        }
+    }
+
     pub fn bind_pipeline(&self, pipeline: &dyn Pipeline) {
         unsafe {
             self.device_dep.device

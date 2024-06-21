@@ -1,6 +1,5 @@
-use std::sync::Arc;
 use akai::application::{Application, GameHandler, RenderContext};
-use akai::vulkan::{CommandBuffer, CommandPool, ComputePipeline, DescriptorSetLayout, Device, GraphicsPipeline, Image, Swapchain};
+use akai::vulkan::{ComputePipeline, DescriptorSetLayout, GraphicsPipeline, Image};
 use winit::event_loop::EventLoop;
 use akai::renderer::Renderer;
 use akai::window::Window;
@@ -56,6 +55,7 @@ impl GameHandler for Game {
 
     fn render(&mut self, render_context: &RenderContext) {
 
+        render_context.command_buffer.clear_color_image(&self.image);
 
         render_context.command_buffer.bind_pipeline(&self.compute_pipeline);
         render_context.command_buffer.bind_push_descriptor_image(&self.compute_pipeline, &self.image);
