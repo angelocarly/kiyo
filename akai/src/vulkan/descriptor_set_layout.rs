@@ -26,7 +26,7 @@ impl DescriptorSetLayout {
                 .binding(0)
                 .descriptor_type(vk::DescriptorType::STORAGE_IMAGE)
                 .descriptor_count(1)
-                .stage_flags(vk::ShaderStageFlags::COMPUTE)
+                .stage_flags(vk::ShaderStageFlags::COMPUTE | vk::ShaderStageFlags::FRAGMENT)
         ];
 
         let layout_create_info = vk::DescriptorSetLayoutCreateInfo::default()

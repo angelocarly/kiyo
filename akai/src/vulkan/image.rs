@@ -110,4 +110,8 @@ impl Image {
             allocator_dep: allocator.inner.clone(),
         }
     }
+
+    pub fn handle(&self) -> &vk::Image {
+        &self.image
+    }
 }

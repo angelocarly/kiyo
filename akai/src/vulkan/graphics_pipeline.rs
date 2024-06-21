@@ -1,7 +1,7 @@
 use std::ffi::CString;
 use std::sync::Arc;
 use ash::vk;
-use crate::vulkan::{Device, Pipeline, RenderPass};
+use crate::vulkan::{DescriptorSetLayout, Device, Pipeline, RenderPass};
 use crate::vulkan::device::DeviceInner;
 use crate::vulkan::pipeline::{create_shader_module, load_from_file};
 
@@ -40,7 +40,7 @@ impl Pipeline for GraphicsPipeline {
 
 impl GraphicsPipeline {
 
-    pub fn new(device: &Device, render_pass: &RenderPass, vertex_shader_source: String, fragment_shader_source: String) -> Self {
+    pub fn new(device: &Device, render_pass: &RenderPass, vertex_shader_source: String, fragment_shader_source: String, layouts: &[&DescriptorSetLayout]) -> Self {
 
         let vertex_shader_code = load_from_file(vertex_shader_source);
         let fragment_shader_code = load_from_file(fragment_shader_source);
@@ -129,7 +129,10 @@ impl GraphicsPipeline {
             .dynamic_states(&[vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR]);
 
         // Layout
-        let create_info = vk::PipelineLayoutCreateInfo::default();
+        let desc_layouts = layouts
+            .iter().map(|layout| layout.handle()).collect::<Vec<_>>();
+        let create_info = vk::PipelineLayoutCreateInfo::default()
+            .set_layouts(&*desc_layouts);
         let pipeline_layout = unsafe {
             device.handle()
                 .create_pipeline_layout(&create_info, None)

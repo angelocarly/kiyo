@@ -1,5 +1,6 @@
+use std::sync::Arc;
 use akai::application::{Application, GameHandler, RenderContext};
-use akai::vulkan::{ComputePipeline, DescriptorSetLayout, Image};
+use akai::vulkan::{CommandBuffer, CommandPool, ComputePipeline, DescriptorSetLayout, Device, GraphicsPipeline, Image, Swapchain};
 use winit::event_loop::EventLoop;
 use akai::renderer::Renderer;
 use akai::window::Window;
@@ -7,6 +8,7 @@ use akai::window::Window;
 struct Game {
     image: Image,
     compute_pipeline: ComputePipeline,
+    graphics_pipeline: GraphicsPipeline,
     _descriptor_set_layout: DescriptorSetLayout,
 }
 
@@ -24,30 +26,55 @@ impl Game {
             600
         );
 
-       let compute_pipeline = ComputePipeline::new(
+        renderer.transition_image(&image);
+
+        let compute_pipeline = ComputePipeline::new(
+             &renderer.device,
+             "examples/compute_pipeline/shaders/test_shader.comp".to_string(),
+             &[&descriptor_set_layout],
+        );
+
+        let graphics_pipeline = GraphicsPipeline::new(
             &renderer.device,
-            "examples/compute_pipeline/shaders/test_shader.comp".to_string(),
-            &[&descriptor_set_layout],
+            &renderer.render_pass,
+            "examples/compute_pipeline/shaders/test_shader.vert".to_string(),
+            "examples/compute_pipeline/shaders/test_shader.frag".to_string(),
+            &[&descriptor_set_layout]
         );
 
         Game {
             image,
             compute_pipeline,
+            graphics_pipeline,
             _descriptor_set_layout: descriptor_set_layout
         }
     }
+
 }
 
 impl GameHandler for Game {
 
     fn render(&mut self, render_context: &RenderContext) {
 
+
         render_context.command_buffer.bind_pipeline(&self.compute_pipeline);
         render_context.command_buffer.bind_push_descriptor_image(&self.compute_pipeline, &self.image);
-        render_context.command_buffer.dispatch(1, 1, 1);
+        render_context.command_buffer.dispatch(100, 100, 1);
 
         render_context.begin_root_render_pass();
         {
+            render_context.command_buffer.bind_pipeline(&self.graphics_pipeline);
+            render_context.command_buffer.bind_push_descriptor_image(&self.graphics_pipeline, &self.image);
+            unsafe {
+                render_context.device.handle()
+                    .cmd_draw(
+                        render_context.command_buffer.handle(),
+                        3,
+                        1,
+                        0,
+                        0
+                    )
+            };
         }
         render_context.command_buffer.end_render_pass();
     }

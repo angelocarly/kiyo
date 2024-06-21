@@ -3,7 +3,7 @@ use ash::vk;
 use ash::vk::{FenceCreateFlags, PhysicalDevice, Queue};
 use gpu_allocator::vulkan::{AllocatorCreateDesc};
 use crate::application::{GameHandler, RenderContext};
-use crate::vulkan::{Allocator, CommandBuffer, CommandPool, Device, Framebuffer, Instance, RenderPass, Surface, Swapchain};
+use crate::vulkan::{Allocator, CommandBuffer, CommandPool, Device, Framebuffer, Image, Instance, RenderPass, Surface, Swapchain};
 use crate::window::Window;
 
 pub struct Renderer {
@@ -169,6 +169,42 @@ impl Renderer {
 
         command_buffer.end();
     }
+
+    pub fn transition_image(&self, image: &Image) {
+        let image_command_buffer = Arc::new(CommandBuffer::new(&self.device, &self.command_pool));
+        image_command_buffer.begin();
+        {
+            let image_memory_barrier = vk::ImageMemoryBarrier::default()
+                .old_layout(vk::ImageLayout::UNDEFINED)
+                .new_layout(vk::ImageLayout::GENERAL)
+                .src_access_mask(vk::AccessFlags::empty())
+                .dst_access_mask(vk::AccessFlags::empty())
+                .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
+                .dst_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
+                .image(*image.handle())
+                .subresource_range(vk::ImageSubresourceRange {
+                    aspect_mask: vk::ImageAspectFlags::COLOR,
+                    base_mip_level: 0,
+                    level_count: 1,
+                    base_array_layer: 0,
+                    layer_count: 1,
+                });
+            unsafe {
+                self.device.handle().cmd_pipeline_barrier(
+                    image_command_buffer.handle(),
+                    vk::PipelineStageFlags::TOP_OF_PIPE,
+                    vk::PipelineStageFlags::BOTTOM_OF_PIPE,
+                    vk::DependencyFlags::empty(),
+                    &[],
+                    &[],
+                    &[image_memory_barrier]
+                )
+            }
+        }
+        image_command_buffer.end();
+        self.device.submit_single_time_command(self.queue, image_command_buffer);
+    }
+
 
     pub fn draw_frame(&mut self, game_handler: &mut dyn GameHandler) {
 

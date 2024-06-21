@@ -1,5 +1,9 @@
 #version 450
 
+layout ( binding = 0, rgba8 ) uniform image2D outImage;
+
 void main()
 {
+    ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+    imageStore(outImage, pos, uvec4(1, 0, 0, 0));
 }
