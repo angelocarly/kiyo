@@ -47,7 +47,6 @@ pub fn new(device: &Device, shader_source: String, layouts: &[&DescriptorSetLayo
 
         let binding = CString::new("main").unwrap();
         let shader_stages = [
-            // Vertex shader
             vk::PipelineShaderStageCreateInfo::default()
                 .stage(vk::ShaderStageFlags::COMPUTE)
                 .module(shader_module)

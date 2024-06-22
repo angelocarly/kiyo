@@ -1,3 +1,4 @@
+use ash::vk;
 use akai::application::{Application, GameHandler, RenderContext};
 use akai::vulkan::{ComputePipeline, DescriptorSetLayout, GraphicsPipeline, Image};
 use winit::event_loop::EventLoop;
@@ -14,18 +15,27 @@ struct Game {
 impl Game {
     pub fn new(renderer: &mut Renderer) -> Game{
 
+        let layout_bindings = &[
+            vk::DescriptorSetLayoutBinding::default()
+                .binding(0)
+                .descriptor_type(vk::DescriptorType::STORAGE_IMAGE)
+                .descriptor_count(1)
+                .stage_flags(vk::ShaderStageFlags::COMPUTE | vk::ShaderStageFlags::FRAGMENT)
+        ];
         let descriptor_set_layout = DescriptorSetLayout::new_push_descriptor(
-            &renderer.device
+            &renderer.device,
+            layout_bindings
         );
 
         let image = Image::new(
             &renderer.device,
             &mut renderer.allocator,
             800,
-            600
+            600,
+            vk::ImageUsageFlags::STORAGE | vk::ImageUsageFlags::TRANSFER_SRC | vk::ImageUsageFlags::TRANSFER_DST
         );
 
-        renderer.transition_image(&image);
+        renderer.transition_image(&image, vk::ImageLayout::UNDEFINED, vk::ImageLayout::GENERAL);
 
         let compute_pipeline = ComputePipeline::new(
              &renderer.device,

@@ -30,7 +30,7 @@ impl Drop for Image {
 }
 
 impl Image {
-    pub fn new(device: &Device, allocator: &mut Allocator, width: u32, height: u32) -> Image {
+    pub fn new(device: &Device, allocator: &mut Allocator, width: u32, height: u32, image_usage_flags: vk::ImageUsageFlags) -> Image {
 
         // Image
         let create_info = vk::ImageCreateInfo::default()
@@ -40,7 +40,7 @@ impl Image {
                 depth: 1,
             })
             .samples(vk::SampleCountFlags::TYPE_1)
-            .usage(vk::ImageUsageFlags::STORAGE | vk::ImageUsageFlags::TRANSFER_SRC | vk::ImageUsageFlags::TRANSFER_DST)
+            .usage(image_usage_flags)
             .sharing_mode(vk::SharingMode::EXCLUSIVE)
             .initial_layout(vk::ImageLayout::UNDEFINED)
             .array_layers(1)

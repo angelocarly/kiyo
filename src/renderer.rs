@@ -170,13 +170,13 @@ impl Renderer {
         command_buffer.end();
     }
 
-    pub fn transition_image(&self, image: &Image) {
+    pub fn transition_image(&self, image: &Image, old_layout: vk::ImageLayout, new_layout: vk::ImageLayout) {
         let image_command_buffer = Arc::new(CommandBuffer::new(&self.device, &self.command_pool));
         image_command_buffer.begin();
         {
             let image_memory_barrier = vk::ImageMemoryBarrier::default()
-                .old_layout(vk::ImageLayout::UNDEFINED)
-                .new_layout(vk::ImageLayout::GENERAL)
+                .old_layout(old_layout)
+                .new_layout(new_layout)
                 .src_access_mask(vk::AccessFlags::empty())
                 .dst_access_mask(vk::AccessFlags::empty())
                 .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
