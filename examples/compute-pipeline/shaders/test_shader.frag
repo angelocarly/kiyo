@@ -8,6 +8,7 @@ layout ( binding = 0, rgba8 ) readonly uniform image2D inImage;
 
 void main()
 {
-    vec4 color = imageLoad( inImage, ivec2( inUV * vec2( 800, 600 ) ) );
+    ivec2 screenSize = imageSize( inImage );
+    vec4 color = imageLoad( inImage, ivec2( inUV * screenSize ) );
     outColor = color;
 }

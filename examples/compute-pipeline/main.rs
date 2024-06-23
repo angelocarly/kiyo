@@ -30,8 +30,8 @@ impl Game {
         let image = Image::new(
             &renderer.device,
             &mut renderer.allocator,
-            800,
-            600,
+            1600,
+            900,
             vk::ImageUsageFlags::STORAGE | vk::ImageUsageFlags::TRANSFER_SRC | vk::ImageUsageFlags::TRANSFER_DST
         );
 
@@ -69,7 +69,7 @@ impl GameHandler for Game {
 
         render_context.command_buffer.bind_pipeline(&self.compute_pipeline);
         render_context.command_buffer.bind_push_descriptor_image(&self.compute_pipeline, &self.image);
-        render_context.command_buffer.dispatch(100, 100, 1);
+        render_context.command_buffer.dispatch(20, 20, 1);
 
         render_context.begin_root_render_pass();
         {
@@ -92,7 +92,7 @@ impl GameHandler for Game {
 
 fn main() {
     let event_loop = EventLoop::new().expect("Failed to create event loop.");
-    let mut window = Window::create(&event_loop, "Akai engine", 800, 600);
+    let mut window = Window::create(&event_loop, "Akai engine", 1600, 900);
     let mut renderer = Renderer::new(&window);
     let mut game = Game::new(&mut renderer);
 
