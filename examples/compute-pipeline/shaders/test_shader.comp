@@ -1,5 +1,8 @@
 #version 450
 
+#define WORKGROUP_SIZE 16
+layout ( local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
+
 #define hash2(p) fract(sin((p)*mat2(127.1,311.7, 269.5,183.3)) * 43758.5453123)
 #define hash3(p) fract(sin((p)*mat3(127.1,311.7, 74.7,  269.5,183.3,246.1,  113.5,271.9,124.6))*43758.5453123)
 
@@ -129,7 +132,8 @@ void main()
 {
     ivec2 screenSize = imageSize( outImage );
 
-    vec3 pos = vec3( ivec2(gl_GlobalInvocationID.xy) - ivec2( 10 ), 0 );
+    vec3 pos = vec3( ivec2(gl_GlobalInvocationID.xy) - ivec2( gl_NumWorkGroups * WORKGROUP_SIZE / 2 ), 0 );
+    pos *= 0.1f;
 
     // Transform
     vec3 p1 = transform( pos );
