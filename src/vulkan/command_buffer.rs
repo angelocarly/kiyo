@@ -109,6 +109,13 @@ impl CommandBuffer {
         }
     }
 
+    pub fn push_constants(&self, pipeline: &dyn Pipeline, stage_flags: vk::ShaderStageFlags, offset: u32, data: &[u8]) {
+        unsafe {
+            self.device_dep.device
+                .cmd_push_constants(self.command_buffer, pipeline.layout(), stage_flags, offset, data);
+        }
+    }
+
     pub fn set_viewport(&self, viewport: vk::Viewport) {
         unsafe {
             self.device_dep.device

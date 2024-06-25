@@ -1,6 +1,7 @@
 use std::ffi::CString;
 use std::sync::Arc;
 use ash::vk;
+use ash::vk::PushConstantRange;
 use crate::vulkan::{DescriptorSetLayout, Device, Pipeline};
 use crate::vulkan::device::DeviceInner;
 use crate::vulkan::pipeline::{create_shader_module, load_from_file};
@@ -40,7 +41,7 @@ impl Pipeline for ComputePipeline {
 
 impl ComputePipeline {
 
-pub fn new(device: &Device, shader_source: String, layouts: &[&DescriptorSetLayout]) -> Self {
+pub fn new(device: &Device, shader_source: String, layouts: &[&DescriptorSetLayout], push_constant_ranges: &[PushConstantRange]) -> Self {
 
         let shader_code = load_from_file(shader_source);
         let shader_module = create_shader_module(device.handle(), shader_code.to_vec());
@@ -57,7 +58,8 @@ pub fn new(device: &Device, shader_source: String, layouts: &[&DescriptorSetLayo
         let desc_layouts = layouts
             .iter().map(|layout| layout.handle()).collect::<Vec<_>>();
         let create_info = vk::PipelineLayoutCreateInfo::default()
-            .set_layouts(&*desc_layouts);
+            .set_layouts(&*desc_layouts)
+            .push_constant_ranges(&push_constant_ranges);
         let pipeline_layout = unsafe {
             device.handle()
                 .create_pipeline_layout(&create_info, None)

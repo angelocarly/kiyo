@@ -3,7 +3,12 @@
 #define hash2(p) fract(sin((p)*mat2(127.1,311.7, 269.5,183.3)) * 43758.5453123)
 #define hash3(p) fract(sin((p)*mat3(127.1,311.7, 74.7,  269.5,183.3,246.1,  113.5,271.9,124.6))*43758.5453123)
 
-layout ( binding = 0, rgba8 ) uniform image2D outImage;
+layout( binding = 0, rgba8 ) uniform image2D outImage;
+
+layout( push_constant ) uniform PushConstants
+{
+    float time;
+} constants;
 
 mat3 rotateX(float theta) {
     float c = cos(theta);
@@ -95,19 +100,41 @@ void drawLine( ivec2 start, ivec2 end, vec3 color )
     }
 }
 
+mat4 projMatrix()
+{
+    mat4 m = mat4(1.0);
+    float near = 0.1;
+    float far = 100.0;
+    float angleOfView = 90.0;
+    float scale = 1 / tan(angleOfView * 0.5 * 3.1415 / 180);
+    m[0][0] = scale;  // scale the x coordinates of the projected point
+    m[1][1] = scale;  // scale the y coordinates of the projected point
+    m[2][2] = -far / (far - near);  // used to remap z to [0,1]
+    m[3][2] = -far * near / (far - near);  // used to remap z [0,1]
+    m[2][3] = -1;  // set w = -z
+    m[3][3] = 0;
+    return m;
+}
+
+vec3 transform( vec3 pos )
+{
+    vec3 p = rotateX( .4f ) * pos;
+    p = rotateY( 1.2f * constants.time * .1f ) * p;
+    p = ( projMatrix() * vec4( p, 1 ) ).xyz;
+
+    return p;
+}
+
 void main()
 {
     ivec2 screenSize = imageSize( outImage );
 
     vec3 pos = vec3( ivec2(gl_GlobalInvocationID.xy) - ivec2( 10 ), 0 );
 
-    // Rotate
-    vec3 p1 = rotateX( .4f ) * pos;
-    p1 = rotateY( 1.2f ) * p1;
-
+    // Transform
+    vec3 p1 = transform( pos );
     float len = 2.0f;
-    vec3 p2 = rotateX( .4f ) * ( pos + vec3( 0, 0, len ) );
-    p2 = rotateY( 1.2f ) * p2;
+    vec3 p2 = transform( pos + vec3( 0, 0, len ) );
 
     // Scale
     float scale = 30.0f;
