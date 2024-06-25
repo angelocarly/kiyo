@@ -84,7 +84,7 @@ impl GameHandler for Game {
         render_context.command_buffer.bind_push_descriptor_image(&self.compute_pipeline, &self.image);
         let time = self.start_time.elapsed().unwrap().as_secs_f32();
         render_context.command_buffer.push_constants(&self.compute_pipeline, vk::ShaderStageFlags::COMPUTE, 0, &time.to_ne_bytes());
-        render_context.command_buffer.dispatch(20, 20, 1);
+        render_context.command_buffer.dispatch(2, 2, 1);
 
         render_context.begin_root_render_pass();
         {

@@ -132,18 +132,16 @@ void main()
 {
     ivec2 screenSize = imageSize( outImage );
 
-    vec3 pos = vec3( ivec2(gl_GlobalInvocationID.xy) - ivec2( gl_NumWorkGroups * WORKGROUP_SIZE / 2 ), 0 );
-    pos *= 0.1f;
+    vec3 pos = vec3( vec2(gl_GlobalInvocationID.xy) / vec2( gl_NumWorkGroups * WORKGROUP_SIZE ) - .5f, 0 );
 
     // Transform
     vec3 p1 = transform( pos );
-    float len = 2.0f;
+    float len = 0.1f;
     vec3 p2 = transform( pos + vec3( 0, 0, len ) );
 
     // Scale
-    float scale = 30.0f;
-    p1 *= scale;
-    p2 *= scale;
+    p1 *= 600.0f;
+    p2 *= 600.0f;
 
     // Map position to screen space
     ivec2 ip1 = ivec2( p1.xy );
