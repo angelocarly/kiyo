@@ -32,8 +32,8 @@ impl Game {
         let image = Image::new(
             &renderer.device,
             &mut renderer.allocator,
-            1400,
-            1400,
+            1000,
+            1000,
             vk::ImageUsageFlags::STORAGE | vk::ImageUsageFlags::TRANSFER_SRC | vk::ImageUsageFlags::TRANSFER_DST
         );
 
@@ -107,7 +107,7 @@ impl GameHandler for Game {
 
 fn main() {
     let event_loop = EventLoop::new().expect("Failed to create event loop.");
-    let mut window = Window::create(&event_loop, "Akai engine", 1400, 1400);
+    let mut window = Window::create(&event_loop, "Akai engine", 1000, 1000);
     let mut renderer = Renderer::new(&window);
     let mut game = Game::new(&mut renderer);
 
