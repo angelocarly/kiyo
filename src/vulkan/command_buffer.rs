@@ -165,6 +165,43 @@ impl CommandBuffer {
         }
     }
 
+    pub fn image_barrier(
+        &self,
+        src_stage_mask: vk::PipelineStageFlags,
+        dst_stage_mask: vk::PipelineStageFlags,
+        src_access_mask: vk::AccessFlags,
+        dst_access_mask: vk::AccessFlags,
+        dependency_flags: vk::DependencyFlags,
+        image: &Image
+    ) {
+        unsafe {
+            self.device_dep.device
+                .cmd_pipeline_barrier(
+                    self.command_buffer,
+                    src_stage_mask,
+                    dst_stage_mask,
+                    dependency_flags,
+                    &[],
+                    &[],
+                    &[vk::ImageMemoryBarrier::default()
+                        .subresource_range(vk::ImageSubresourceRange::default()
+                            .aspect_mask(vk::ImageAspectFlags::COLOR)
+                            .base_array_layer(0)
+                            .base_mip_level(0)
+                            .layer_count(1)
+                            .level_count(1))
+                        .old_layout(vk::ImageLayout::GENERAL)
+                        .new_layout(vk::ImageLayout::GENERAL)
+                        .src_access_mask(src_access_mask)
+                        .dst_access_mask(dst_access_mask)
+                        .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
+                        .dst_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
+                        .image(*image.handle())
+                    ]
+                );
+        }
+    }
+
     pub fn bind_descriptor_sets(&self, pipeline: &dyn Pipeline, descriptor_sets: &[vk::DescriptorSet]) {
         unsafe {
             self.device_dep.device

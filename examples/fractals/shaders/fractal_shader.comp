@@ -1,0 +1,38 @@
+#version 450
+
+#define WORKGROUP_SIZE 32
+layout ( local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
+
+#define hash2(p) fract(sin((p)*mat2(127.1,311.7, 269.5,183.3)) * 43758.5453123)
+#define hash3(p) fract(sin((p)*mat3(127.1,311.7, 74.7,  269.5,183.3,246.1,  113.5,271.9,124.6))*43758.5453123)
+
+layout( binding = 0, rgba8 ) uniform image2D outImage;
+
+layout( push_constant ) uniform PushConstants
+{
+    float time;
+} constants;
+
+vec3 palette( in float t, in vec3 a, in vec3 b, in vec3 c, in vec3 d )
+{
+    return a + b*cos( 6.28318*(c*t+d) );
+}
+
+vec2 fold( vec2 p, float ang )
+{
+    vec2 n = vec2( cos( -ang ), sin( -ang ) );
+    p -= 2. * min( 0., dot( p, n ) ) * n;
+    return p;
+}
+
+vec3 color( vec3 pos )
+{
+    vec2 pt = fold( pos.xy, 0.5f * constants.time );
+    return vec3( sin( pt.x ) );
+    //return palette( 0.5f, vec3( 0.5f ), vec3( 0.5f ), vec3( 1.0f ), vec3( 0.0f ) );
+}
+
+void main()
+{
+    imageStore( outImage, ivec2( gl_GlobalInvocationID.xy ), vec4( 0.3f ) );
+}

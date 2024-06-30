@@ -18,3 +18,6 @@ name = "compute-pipeline"
 
 [[example]]
 name = "graphics-pipeline"
+
+[[example]]
+name = "fractals"
