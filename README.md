@@ -18,6 +18,7 @@ that.
 
 ## Planned features
 
+- [ ] CI tests using swiftshader. Possibly using [vulkanci](https://github.com/marketplace/actions/vulkanci).
 - [ ] A simple GUI library. For example with [imgui-rs-vulkan-renderer](https://github.com/adrien-ben/imgui-rs-vulkan-renderer).
 - [ ] An integrated deferred rendering system.
   - Could be an interesting way to easily add lighting to generative art, as lighting computations are done in a separate pass.
