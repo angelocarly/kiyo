@@ -71,7 +71,6 @@ impl Game {
             start_time
         }
     }
-
 }
 
 impl GameHandler for Game {
