@@ -6,7 +6,9 @@ struct OrchTest {
 }
 
 impl DrawOrchestrator for OrchTest {
+    fn render(&mut self) {
 
+    }
 }
 
 fn main() {

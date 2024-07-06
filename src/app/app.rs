@@ -6,6 +6,26 @@ use crate::app::DrawOrchestrator;
 use crate::renderer::Renderer;
 use crate::window::Window;
 
+// Maybe delete all the following blocks
+use crate::vulkan::{Device, RenderPass, Framebuffer, CommandBuffer};
+
+pub struct RenderContext<'a> {
+    pub device: &'a Device,
+    pub(crate) render_pass: &'a RenderPass,
+    pub(crate) framebuffer: &'a Framebuffer,
+    pub command_buffer: &'a CommandBuffer,
+}
+
+impl RenderContext<'_> {
+    pub fn begin_root_render_pass(&self) {
+        self.command_buffer.begin_render_pass(
+            &self.render_pass,
+            &self.framebuffer
+        );
+    }
+}
+// Stop delete
+
 pub struct App {
     _start_time: SystemTime,
     renderer: Renderer,
@@ -19,7 +39,6 @@ impl App {
         let start_time = std::time::SystemTime::now();
 
         let event_loop = EventLoop::new().expect("Failed to create event loop.");
-
         let window = Window::create(&event_loop, "Akai engine", 1000, 1000);
         let renderer = Renderer::new(&window);
 
@@ -31,21 +50,21 @@ impl App {
         }
     }
 
-    pub fn run(mut self, _draw_orchestrator: &mut dyn DrawOrchestrator) {
+    pub fn run(mut self, draw_orchestrator: &mut dyn DrawOrchestrator) {
         self.event_loop
             .run_on_demand( |event, elwt| {
                 elwt.set_control_flow(ControlFlow::Poll);
 
                 match event {
                     | Event::NewEvents(StartCause::Poll) => {
-                        //self.renderer.draw_frame(game_handler);
+                        self.renderer.draw_frame(draw_orchestrator);
                     }
                     | Event::WindowEvent { event, .. } => {
                         self.window.window_event( event.clone(), elwt );
 
                         match event {
                             WindowEvent::RedrawRequested => {
-                                //renderer.draw_frame(game_handler);
+                                self.renderer.draw_frame(draw_orchestrator);
                             },
                             _ => (),
                         }

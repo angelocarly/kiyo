@@ -2,7 +2,7 @@ use std::sync::Arc;
 use ash::vk;
 use ash::vk::{FenceCreateFlags, PhysicalDevice, Queue};
 use gpu_allocator::vulkan::{AllocatorCreateDesc};
-use crate::application::{GameHandler, RenderContext};
+use crate::app::DrawOrchestrator;
 use crate::vulkan::{Allocator, CommandBuffer, CommandPool, Device, Framebuffer, Image, Instance, RenderPass, Surface, Swapchain};
 use crate::window::Window;
 
@@ -135,7 +135,7 @@ impl Renderer {
         device.submit_single_time_command(*queue, image_command_buffer);
     }
 
-    fn record_command_buffer(&mut self, frame_index: usize, game_handler: &mut dyn GameHandler) {
+    fn record_command_buffer(&mut self, frame_index: usize, draw_orchestrator: &mut dyn DrawOrchestrator) {
 
         let command_buffer = &self.command_buffers[frame_index];
 
@@ -159,13 +159,13 @@ impl Renderer {
             }
         );
 
-        let render_context = RenderContext {
-            device: &self.device,
-            render_pass: &self.render_pass,
-            framebuffer: &self.framebuffers[frame_index],
-            command_buffer: command_buffer,
-        };
-        game_handler.render(&render_context);
+        //let render_context = RenderContext {
+        //    device: &self.device,
+        //    render_pass: &self.render_pass,
+        //    framebuffer: &self.framebuffers[frame_index],
+        //    command_buffer: command_buffer,
+        //};
+        draw_orchestrator.render();
 
         command_buffer.end();
     }
@@ -206,14 +206,14 @@ impl Renderer {
     }
 
 
-    pub fn draw_frame(&mut self, game_handler: &mut dyn GameHandler) {
+    pub fn draw_frame(&mut self, draw_orchestrator: &mut dyn DrawOrchestrator) {
 
         // Wait for the corresponding command buffer to finish executing.
         self.device.wait_for_fence(self.in_flight_fences[self.frame_index]);
 
         let index = self.swapchain.acquire_next_image(self.image_available_semaphores[self.frame_index]) as usize;
 
-        self.record_command_buffer(self.frame_index, game_handler);
+        self.record_command_buffer(self.frame_index, draw_orchestrator);
 
         self.device.reset_fence(self.in_flight_fences[self.frame_index]);
         self.device.submit_command_buffer(
