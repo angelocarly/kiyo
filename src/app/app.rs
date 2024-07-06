@@ -2,6 +2,7 @@ use std::time::SystemTime;
 use winit::event::{Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
+use crate::app::DrawOrchestrator;
 use crate::renderer::Renderer;
 use crate::window::Window;
 
@@ -30,7 +31,7 @@ impl App {
         }
     }
 
-    pub fn run(mut self){//, draw_orchestrator: &mut dyn DrawOrchestrator) {
+    pub fn run(mut self, _draw_orchestrator: &mut dyn DrawOrchestrator) {
         self.event_loop
             .run_on_demand( |event, elwt| {
                 elwt.set_control_flow(ControlFlow::Poll);
