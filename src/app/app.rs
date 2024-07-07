@@ -2,6 +2,7 @@ use std::time::SystemTime;
 use winit::event::{Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
+use crate::app::draw_orch::DrawConfig;
 use crate::app::DrawOrchestrator;
 use crate::renderer::Renderer;
 use crate::window::Window;
@@ -36,7 +37,7 @@ pub struct App {
 impl App {
     pub fn new() -> App{
 
-        let start_time = std::time::SystemTime::now();
+        let start_time = SystemTime::now();
 
         let event_loop = EventLoop::new().expect("Failed to create event loop.");
         let window = Window::create(&event_loop, "Akai engine", 1000, 1000);
@@ -50,21 +51,24 @@ impl App {
         }
     }
 
-    pub fn run(mut self, draw_orchestrator: &mut DrawOrchestrator) {
+    pub fn run(mut self, draw_config: DrawConfig) {
+
+        let mut orchestrator = DrawOrchestrator::new(&mut self.renderer, draw_config);
+
         self.event_loop
             .run_on_demand( |event, elwt| {
                 elwt.set_control_flow(ControlFlow::Poll);
 
                 match event {
                     | Event::NewEvents(StartCause::Poll) => {
-                        self.renderer.draw_frame(draw_orchestrator);
+                        self.renderer.draw_frame(&mut orchestrator);
                     }
                     | Event::WindowEvent { event, .. } => {
                         self.window.window_event( event.clone(), elwt );
 
                         match event {
                             WindowEvent::RedrawRequested => {
-                                self.renderer.draw_frame(draw_orchestrator);
+                                self.renderer.draw_frame(&mut orchestrator);
                             },
                             _ => (),
                         }
