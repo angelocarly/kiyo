@@ -74,7 +74,7 @@ impl Swapchain {
         };
 
         let create_info = vk::SwapchainCreateInfoKHR::default()
-            .image_usage(ImageUsageFlags::COLOR_ATTACHMENT)
+            .image_usage(ImageUsageFlags::COLOR_ATTACHMENT | ImageUsageFlags::TRANSFER_DST)
             .image_extent(extent)
             .image_sharing_mode(SharingMode::EXCLUSIVE)
             .image_format(surface_format.format)

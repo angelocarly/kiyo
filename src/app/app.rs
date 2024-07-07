@@ -50,7 +50,7 @@ impl App {
         }
     }
 
-    pub fn run(mut self, draw_orchestrator: &mut dyn DrawOrchestrator) {
+    pub fn run(mut self, draw_orchestrator: &mut DrawOrchestrator) {
         self.event_loop
             .run_on_demand( |event, elwt| {
                 elwt.set_control_flow(ControlFlow::Poll);
