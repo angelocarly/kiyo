@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use ash::vk;
 use glam::UVec2;
-use crate::renderer::Renderer;
+use crate::app::Renderer;
 use crate::vulkan::{CommandBuffer, ComputePipeline, DescriptorSetLayout, Image};
 
 pub struct Pass {
@@ -18,7 +18,7 @@ impl DrawConfig {
     pub fn new() -> DrawConfig {
         DrawConfig {
             passes: Vec::new(),
-            resolution: UVec2::new(2000, 2000)
+            resolution: UVec2::new(1000, 1000)
         }
     }
 }

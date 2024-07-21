@@ -1,11 +1,9 @@
-use std::hash::Hash;
 use std::sync::Arc;
 use ash::vk;
-use ash::vk::{Extent3D, FenceCreateFlags, ImageAspectFlags, ImageSubresource, ImageSubresourceLayers, Offset3D, PhysicalDevice, Queue};
+use ash::vk::{Extent3D, FenceCreateFlags, ImageAspectFlags, ImageSubresourceLayers, Offset3D, PhysicalDevice, Queue};
 use gpu_allocator::vulkan::{AllocatorCreateDesc};
-use crate::app::DrawOrchestrator;
-use crate::vulkan::{Allocator, CommandBuffer, CommandPool, DescriptorSetLayout, Device, Framebuffer, Instance, RenderPass, Surface, Swapchain};
-use crate::window::Window;
+use crate::app::{DrawOrchestrator, Window};
+use crate::vulkan::{Allocator, CommandBuffer, CommandPool, Device, Instance, Surface, Swapchain};
 
 pub struct Renderer {
     pub render_finished_semaphores: Vec<vk::Semaphore>,
@@ -124,13 +122,13 @@ impl Renderer {
         device.submit_single_time_command(*queue, image_command_buffer);
     }
 
-    fn record_command_buffer(&mut self, frame_index: usize, swapchain_index: usize, draw_orchestrator: &mut DrawOrchestrator) {
+    fn record_command_buffer(&mut self, frame_index: usize, draw_orchestrator: &mut DrawOrchestrator) {
 
         let command_buffer = &self.command_buffers[frame_index];
 
         command_buffer.begin();
 
-        /// Setup dynamic state
+        // Setup dynamic state
         command_buffer.set_scissor(
             vk::Rect2D {
                 offset: vk::Offset2D { x: 0, y: 0 },
@@ -200,14 +198,38 @@ impl Renderer {
                 );
         }
 
+        // Synchronize between clear and the compute
+        self.transition_image(
+            command_buffer,
+            &draw_image.handle(),
+            vk::ImageLayout::GENERAL,
+            vk::ImageLayout::GENERAL,
+            vk::PipelineStageFlags::TRANSFER,
+            vk::PipelineStageFlags::COMPUTE_SHADER,
+            vk::AccessFlags::TRANSFER_WRITE,
+            vk::AccessFlags::SHADER_READ
+        );
+
         // Render to the draw image
         draw_orchestrator.passes.iter().for_each(|p| {
             command_buffer.bind_pipeline(&p.compute_pipeline);
             command_buffer.bind_push_descriptor_image(&p.compute_pipeline, &draw_image);
-            command_buffer.dispatch(p.dispatches.x, p.dispatches.y, p.dispatches.z)
+            command_buffer.dispatch(p.dispatches.x, p.dispatches.y, p.dispatches.z);
+
+            // Synchronize between compute and compute
+            self.transition_image(
+                command_buffer,
+                &draw_image.handle(),
+                vk::ImageLayout::GENERAL,
+                vk::ImageLayout::GENERAL,
+                vk::PipelineStageFlags::COMPUTE_SHADER,
+                vk::PipelineStageFlags::COMPUTE_SHADER,
+                vk::AccessFlags::SHADER_WRITE,
+                vk::AccessFlags::SHADER_READ
+            );
         });
 
-        // Copy draw image to the swapchain
+        // Synchronize between compute and transfer
         self.transition_image(
             command_buffer,
             &draw_image.handle(),
@@ -219,6 +241,7 @@ impl Renderer {
             vk::AccessFlags::TRANSFER_READ
         );
 
+        // Copy draw image to the swapchain
         unsafe {
             self.device.handle()
                 .cmd_copy_image(
@@ -229,7 +252,12 @@ impl Renderer {
                     vk::ImageLayout::TRANSFER_DST_OPTIMAL,
                     &[
                         vk::ImageCopy::default()
-                            .extent(Extent3D::default().width(2000).height(2000).depth(1))
+                            .extent(
+                                Extent3D::default()
+                                    .width(draw_orchestrator.image.width)
+                                    .height(draw_orchestrator.image.height)
+                                    .depth(1)
+                            )
                             .dst_offset(Offset3D::default())
                             .src_offset(Offset3D::default())
                             .src_subresource(
@@ -321,9 +349,8 @@ impl Renderer {
         self.device.wait_for_fence(self.in_flight_fences[self.frame_index]);
 
         let index = self.swapchain.acquire_next_image(self.image_available_semaphores[self.frame_index]) as usize;
-        println!("swapchain index: {}", index);
 
-        self.record_command_buffer(self.frame_index, index, draw_orchestrator);
+        self.record_command_buffer(self.frame_index, draw_orchestrator);
 
         self.device.reset_fence(self.in_flight_fences[self.frame_index]);
         self.device.submit_command_buffer(

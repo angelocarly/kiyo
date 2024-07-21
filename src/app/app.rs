@@ -3,9 +3,7 @@ use winit::event::{Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
 use crate::app::draw_orch::DrawConfig;
-use crate::app::DrawOrchestrator;
-use crate::renderer::Renderer;
-use crate::window::Window;
+use crate::app::{DrawOrchestrator, Renderer, Window};
 
 // Maybe delete all the following blocks
 use crate::vulkan::{Device, RenderPass, Framebuffer, CommandBuffer};

@@ -66,5 +66,5 @@ void main()
 
     vec3 pos = vec3( float( p.x ) / float( screenSize.x ), float( p.y ) / float( screenSize.y ), 0.0f ) - 0.5f;
 
-    imageStore( outImage, p, vec4( color( pos ), 1.0f ) );
+    imageStore( outImage, p, vec4( sin( pos.x * 3000.0f ), sin( pos.y * 3000.0f ), 0.0f, 1.0f ) );
 }
