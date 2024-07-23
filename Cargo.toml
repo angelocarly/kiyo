@@ -17,13 +17,4 @@ glam = "0.28.0"
 [dev-dependencies]
 
 [[example]]
-name = "compute-pipeline"
-
-[[example]]
-name = "graphics-pipeline"
-
-[[example]]
 name = "draworchestra"
-
-[[example]]
-name = "fractals"
