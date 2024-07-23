@@ -94,7 +94,7 @@ impl Instance {
             .map(|layer_name| layer_name.as_ptr())
             .collect::<Vec<_>>();
 
-        let create_flags = if cfg!(any(target_os = "macos")) {
+        let create_flags = if cfg!(target_os = "macos") {
             vk::InstanceCreateFlags::ENUMERATE_PORTABILITY_KHR
         } else {
             vk::InstanceCreateFlags::default()

@@ -1,8 +1,8 @@
 use ash::khr::surface;
 use ash::vk;
 use ash::vk::{PresentModeKHR, SurfaceCapabilitiesKHR, SurfaceKHR};
+use crate::app::Window;
 use crate::vulkan::Instance;
-use crate::window::Window;
 
 /// A presentation surface for rendering graphics to a window.
 pub struct Surface {

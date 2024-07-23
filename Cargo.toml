@@ -10,14 +10,11 @@ winit = "0.29.15"
 shaderc = "0.8.3"
 log = "0.4.21"
 gpu-allocator = { git = "https://github.com/Traverse-Research/gpu-allocator.git", rev = "4b5c0d4" }
+egui = "0.24.1"
+egui-ash = { version = "0.4.0", features = ["gpu-allocator"] }
+glam = "0.28.0"
 
 [dev-dependencies]
 
 [[example]]
-name = "compute-pipeline"
-
-[[example]]
-name = "graphics-pipeline"
-
-[[example]]
-name = "fractals"
+name = "draworchestra"

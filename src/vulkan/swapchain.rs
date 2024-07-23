@@ -2,9 +2,9 @@ use std::sync::Arc;
 use ash::khr::swapchain;
 use ash::vk;
 use ash::vk::{CompositeAlphaFlagsKHR, ImageUsageFlags, SharingMode, SurfaceFormatKHR, SwapchainKHR};
+use crate::app::Window;
 use crate::vulkan::{Device, Instance, Surface};
 use crate::vulkan::device::DeviceInner;
-use crate::window::Window;
 
 /// Vulkan does not have a concept of a "default framebuffer". Instead, we need a framework that "owns" the images that will eventually be presented to the screen.
 /// The general purpose of the swapchain is to synchronize the presentation of images with the refresh rate of the screen.
@@ -74,7 +74,7 @@ impl Swapchain {
         };
 
         let create_info = vk::SwapchainCreateInfoKHR::default()
-            .image_usage(ImageUsageFlags::COLOR_ATTACHMENT)
+            .image_usage(ImageUsageFlags::COLOR_ATTACHMENT | ImageUsageFlags::TRANSFER_DST)
             .image_extent(extent)
             .image_sharing_mode(SharingMode::EXCLUSIVE)
             .image_format(surface_format.format)

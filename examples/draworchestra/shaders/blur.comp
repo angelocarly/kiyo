@@ -1,0 +1,40 @@
+#version 450
+
+#define WORKGROUP_SIZE 32
+layout ( local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
+
+layout( binding = 0, rgba8 ) uniform image2D outImages[];
+
+layout( push_constant ) uniform PushConstants
+{
+    float time;
+    int[ 8 ] images_ids;
+} constants;
+
+void main()
+{
+    ivec2 p = ivec2( gl_GlobalInvocationID.xy );
+    ivec2 screenSize = imageSize( outImages[0] );
+    if( p.x > screenSize.x || p.y > screenSize.y )
+    {
+        return;
+    }
+
+    vec4 c = vec4( 0.0f );
+    int range = 10;
+    for( int x = -range; x <= range; x++ )
+    {
+        for( int y = -range; y <= range; y++ )
+        {
+            ivec2 offset = ivec2( x, y );
+            vec4 neighbor = imageLoad( outImages[0], p + offset );
+            c += neighbor;
+        }
+    }
+
+    c /= pow( range * 2 + 1, 2 );
+
+    barrier();
+
+    imageStore( outImages[0], p, c );
+}

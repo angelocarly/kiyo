@@ -1,13 +1,12 @@
+use std::time::SystemTime;
 use winit::event::{Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
-use crate::renderer::Renderer;
-use crate::vulkan::{Device, RenderPass, Framebuffer, CommandBuffer};
-use crate::window::Window;
+use crate::app::draw_orch::DrawConfig;
+use crate::app::{DrawOrchestrator, Renderer, Window};
 
-pub trait GameHandler {
-    fn render(&mut self, render_context: &RenderContext);
-}
+// Maybe delete all the following blocks
+use crate::vulkan::{Device, RenderPass, Framebuffer, CommandBuffer};
 
 pub struct RenderContext<'a> {
     pub device: &'a Device,
@@ -24,34 +23,50 @@ impl RenderContext<'_> {
         );
     }
 }
+// Stop delete
 
-/// Generative art runtime.
-/// Manages the window and graphics recording.
-pub struct Application {
+pub struct App {
+    _start_time: SystemTime,
+    renderer: Renderer,
+    window: Window,
+    event_loop: EventLoop<()>,
 }
 
-impl Application {
+impl App {
+    pub fn new() -> App{
 
-    pub fn new() -> Application {
-        Application {
+        let start_time = SystemTime::now();
+
+        let event_loop = EventLoop::new().expect("Failed to create event loop.");
+        let window = Window::create(&event_loop, "Akai engine", 1000, 1000);
+        let renderer = Renderer::new(&window);
+
+        App {
+            event_loop,
+            window,
+            renderer,
+            _start_time: start_time,
         }
     }
 
-    pub fn run(self, mut event_loop: EventLoop<()>, renderer: &mut Renderer, window: &mut Window, game_handler: &mut dyn GameHandler) {
-        event_loop
+    pub fn run(mut self, draw_config: DrawConfig) {
+
+        let mut orchestrator = DrawOrchestrator::new(&mut self.renderer, draw_config);
+
+        self.event_loop
             .run_on_demand( |event, elwt| {
                 elwt.set_control_flow(ControlFlow::Poll);
 
                 match event {
                     | Event::NewEvents(StartCause::Poll) => {
-                        renderer.draw_frame(game_handler);
+                        self.renderer.draw_frame(&mut orchestrator);
                     }
                     | Event::WindowEvent { event, .. } => {
-                        window.window_event( event.clone(), elwt );
+                        self.window.window_event( event.clone(), elwt );
 
                         match event {
                             WindowEvent::RedrawRequested => {
-                                renderer.draw_frame(game_handler);
+                                self.renderer.draw_frame(&mut orchestrator);
                             },
                             _ => (),
                         }
@@ -64,7 +79,6 @@ impl Application {
 
         // Wait for all render operations to finish before exiting
         // This ensures we can safely start dropping gpu resources
-        renderer.device.wait_idle();
+        self.renderer.device.wait_idle();
     }
 }
-

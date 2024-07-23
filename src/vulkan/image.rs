@@ -13,6 +13,8 @@ pub struct Image {
     pub(crate) image: vk::Image,
     pub(crate) image_view: vk::ImageView,
     pub(crate) sampler: vk::Sampler,
+    pub width: u32,
+    pub height: u32,
     pub allocation: Option<Allocation>,
 }
 
@@ -35,8 +37,8 @@ impl Image {
         // Image
         let create_info = vk::ImageCreateInfo::default()
             .extent(vk::Extent3D {
-                width,
-                height,
+                width: width,
+                height: height,
                 depth: 1,
             })
             .samples(vk::SampleCountFlags::TYPE_1)
@@ -108,6 +110,8 @@ impl Image {
             allocation: Some(allocation),
             device_dep: device.inner.clone(),
             allocator_dep: allocator.inner.clone(),
+            width,
+            height
         }
     }
 
