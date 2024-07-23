@@ -177,38 +177,41 @@ impl Renderer {
                 );
         }
 
-        // Clear the draw image
-        let draw_image = &draw_orchestrator.image;
-        unsafe {
-            self.device.handle()
-                .cmd_clear_color_image(
-                    command_buffer.handle(),
-                    *draw_image.handle(),
-                    vk::ImageLayout::GENERAL,
-                    &vk::ClearColorValue {
+        // Clear all images
+        &draw_orchestrator.images.iter().for_each(|i| {
+            unsafe {
+                self.device.handle()
+                    .cmd_clear_color_image(
+                        command_buffer.handle(),
+                        *i.handle(),
+                        vk::ImageLayout::GENERAL,
+                        &vk::ClearColorValue {
                             float32: [0.0, 0.0, 1.0, 1.0]
-                    },
-                    &[vk::ImageSubresourceRange {
-                        aspect_mask: ImageAspectFlags::COLOR,
-                        base_mip_level: 0,
-                        level_count: 1,
-                        base_array_layer: 0,
-                        layer_count: 1,
-                    }]
-                );
-        }
+                        },
+                        &[vk::ImageSubresourceRange {
+                            aspect_mask: ImageAspectFlags::COLOR,
+                            base_mip_level: 0,
+                            level_count: 1,
+                            base_array_layer: 0,
+                            layer_count: 1,
+                        }]
+                    );
+            }
 
-        // Synchronize between clear and the compute
-        self.transition_image(
-            command_buffer,
-            &draw_image.handle(),
-            vk::ImageLayout::GENERAL,
-            vk::ImageLayout::GENERAL,
-            vk::PipelineStageFlags::TRANSFER,
-            vk::PipelineStageFlags::COMPUTE_SHADER,
-            vk::AccessFlags::TRANSFER_WRITE,
-            vk::AccessFlags::SHADER_READ
-        );
+            // Synchronize between clear and the compute
+            self.transition_image(
+                command_buffer,
+                &i.handle(),
+                vk::ImageLayout::GENERAL,
+                vk::ImageLayout::GENERAL,
+                vk::PipelineStageFlags::TRANSFER,
+                vk::PipelineStageFlags::COMPUTE_SHADER,
+                vk::AccessFlags::TRANSFER_WRITE,
+                vk::AccessFlags::SHADER_READ
+            );
+        });
+
+        // TODO: Push the indices of the in/out images here
 
         // Render to the draw image
         draw_orchestrator.passes.iter().for_each(|p| {

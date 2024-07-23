@@ -1,6 +1,6 @@
 use glam::{UVec2, UVec3};
 use akai::app::app::App;
-use akai::app::draw_orch::{DrawConfig, Pass};
+use akai::app::draw_orch::{DrawConfig, ImageResource, Pass};
 
 fn main() {
     let mut config = DrawConfig::new();
@@ -14,14 +14,24 @@ fn main() {
         1
     );
 
+    config.image_resources = Vec::from([
+        ImageResource {
+            name: "draw".to_string(),
+        }
+    ]);
+
     config.passes = Vec::from([
         Pass {
             shader: "examples/draworchestra/shaders/screen_shader.comp".to_string(),
             dispatches: full_screen_dispatches,
+            input_resources: Vec::new(),
+            output_resources: Vec::from([ "draw".into() ]),
         },
         Pass {
             shader: "examples/draworchestra/shaders/blur.comp".to_string(),
             dispatches: full_screen_dispatches,
+            input_resources: Vec::from([ "draw".into() ]),
+            output_resources: Vec::from([ "draw".into() ]),
         }
     ]);
 
