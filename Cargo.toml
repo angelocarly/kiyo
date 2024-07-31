@@ -13,6 +13,7 @@ gpu-allocator = { git = "https://github.com/Traverse-Research/gpu-allocator.git"
 egui = "0.24.1"
 egui-ash = { version = "0.4.0", features = ["gpu-allocator"] }
 glam = "0.28.0"
+bytemuck = "1.16.1"
 
 [dev-dependencies]
 

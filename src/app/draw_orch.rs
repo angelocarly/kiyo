@@ -1,19 +1,21 @@
+use std::mem::size_of;
 use std::sync::Arc;
 use ash::vk;
 use glam::UVec2;
-use crate::app::Renderer;
+use crate::app::{Renderer};
+use crate::app::renderer::PushConstants;
 use crate::vulkan::{CommandBuffer, ComputePipeline, DescriptorSetLayout, Image};
 
 #[derive(Clone)]
 pub struct ImageResource {
-    pub name: String,
+    pub id: u32,
 }
 
 pub struct Pass {
     pub shader: String,
     pub dispatches: glam::UVec3,
-    pub input_resources: Vec<String>,
-    pub output_resources: Vec<String>,
+    pub input_resources: Vec<u32>,
+    pub output_resources: Vec<u32>,
 }
 
 pub struct DrawConfig {
@@ -35,6 +37,8 @@ impl DrawConfig {
 pub struct ShaderPass {
     pub compute_pipeline: ComputePipeline,
     pub dispatches: glam::UVec3,
+    pub in_images: Vec<u32>,
+    pub out_images: Vec<u32>,
 }
 
 pub struct DrawOrchestrator {
@@ -60,7 +64,7 @@ impl DrawOrchestrator {
         );
 
         // Images
-        let images = draw_config.image_resources.iter().map(|i| {
+        let images = draw_config.image_resources.iter().map(|_| {
             Image::new(
                 &renderer.device,
                 &mut renderer.allocator,
@@ -74,12 +78,19 @@ impl DrawOrchestrator {
         let image_command_buffer = Arc::new(CommandBuffer::new(&renderer.device, &renderer.command_pool));
         image_command_buffer.begin();
         {
-            for image in images {
+            for image in &images {
                 renderer.transition_image(&image_command_buffer, &image.handle(), vk::ImageLayout::UNDEFINED, vk::ImageLayout::GENERAL, vk::PipelineStageFlags::TOP_OF_PIPE, vk::PipelineStageFlags::BOTTOM_OF_PIPE, vk::AccessFlags::empty(), vk::AccessFlags::empty());
             }
         }
         image_command_buffer.end();
         renderer.device.submit_single_time_command(renderer.queue, image_command_buffer);
+
+        let push_constant_ranges = &[
+            vk::PushConstantRange::default()
+                .stage_flags(vk::ShaderStageFlags::COMPUTE)
+                .offset(0)
+                .size(size_of::<PushConstants>() as u32),
+        ];
 
         // Passes
         let passes = draw_config.passes
@@ -89,11 +100,13 @@ impl DrawOrchestrator {
                     &renderer.device,
                     c.shader.to_string(),
                     &[&compute_descriptor_set_layout],
-                    &[]
+                    push_constant_ranges
                 );
                 ShaderPass {
                     compute_pipeline,
                     dispatches: c.dispatches,
+                    in_images: c.input_resources.clone(),
+                    out_images: c.output_resources.clone(),
                 }
             })
             .collect();

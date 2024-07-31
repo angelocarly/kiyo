@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use ash::vk;
 use ash::vk::{Extent3D, FenceCreateFlags, ImageAspectFlags, ImageSubresourceLayers, Offset3D, PhysicalDevice, Queue};
+use bytemuck::{Pod, Zeroable};
 use gpu_allocator::vulkan::{AllocatorCreateDesc};
 use crate::app::{DrawOrchestrator, Window};
 use crate::vulkan::{Allocator, CommandBuffer, CommandPool, Device, Instance, Surface, Swapchain};
@@ -20,6 +21,14 @@ pub struct Renderer {
     pub device: Device,
     pub physical_device: PhysicalDevice,
     pub instance: Instance,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+pub struct PushConstants {
+    pub time: f32,
+    pub in_image: u32,
+    pub out_image: u32,
 }
 
 impl Renderer {
@@ -178,7 +187,7 @@ impl Renderer {
         }
 
         // Clear all images
-        &draw_orchestrator.images.iter().for_each(|i| {
+        draw_orchestrator.images.iter().for_each(|i| {
             unsafe {
                 self.device.handle()
                     .cmd_clear_color_image(
@@ -211,15 +220,22 @@ impl Renderer {
             );
         });
 
-        // TODO: Push the indices of the in/out images here
 
         // Render to the draw image
         draw_orchestrator.passes.iter().for_each(|p| {
+
             command_buffer.bind_pipeline(&p.compute_pipeline);
-            command_buffer.bind_push_descriptor_image(&p.compute_pipeline, &draw_image);
+            let push_constants = PushConstants {
+                time: 0.0,
+                in_image: p.in_images[0],
+                out_image: p.out_images[0],
+            };
+            command_buffer.push_constants(&p.compute_pipeline, vk::ShaderStageFlags::COMPUTE, 0, &bytemuck::cast_slice(std::slice::from_ref(&push_constants)));
+            command_buffer.bind_push_descriptor_images(&p.compute_pipeline, &draw_orchestrator.images);
             command_buffer.dispatch(p.dispatches.x, p.dispatches.y, p.dispatches.z);
 
             // Synchronize between compute and compute
+            let draw_image = &draw_orchestrator.images[p.out_images[0] as usize];
             self.transition_image(
                 command_buffer,
                 &draw_image.handle(),
@@ -232,10 +248,12 @@ impl Renderer {
             );
         });
 
+        let out_image = &draw_orchestrator.images[0];
+
         // Synchronize between compute and transfer
         self.transition_image(
             command_buffer,
-            &draw_image.handle(),
+            &out_image.handle(),
             vk::ImageLayout::GENERAL,
             vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
             vk::PipelineStageFlags::COMPUTE_SHADER,
@@ -249,7 +267,7 @@ impl Renderer {
             self.device.handle()
                 .cmd_copy_image(
                     command_buffer.handle(),
-                    *draw_image.handle(),
+                    *out_image.handle(),
                     vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
                     swapchain_image,
                     vk::ImageLayout::TRANSFER_DST_OPTIMAL,
@@ -257,8 +275,8 @@ impl Renderer {
                         vk::ImageCopy::default()
                             .extent(
                                 Extent3D::default()
-                                    .width(draw_orchestrator.image.width)
-                                    .height(draw_orchestrator.image.height)
+                                    .width(draw_orchestrator.images[0].width)
+                                    .height(draw_orchestrator.images[0].height)
                                     .depth(1)
                             )
                             .dst_offset(Offset3D::default())
@@ -294,7 +312,7 @@ impl Renderer {
         );
         self.transition_image(
             command_buffer,
-            &draw_image.handle(),
+            &out_image.handle(),
             vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
             vk::ImageLayout::GENERAL,
             vk::PipelineStageFlags::TRANSFER,

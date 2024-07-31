@@ -16,7 +16,7 @@ fn main() {
 
     config.image_resources = Vec::from([
         ImageResource {
-            name: "draw".to_string(),
+            id: 0,
         }
     ]);
 
@@ -24,14 +24,14 @@ fn main() {
         Pass {
             shader: "examples/draworchestra/shaders/screen_shader.comp".to_string(),
             dispatches: full_screen_dispatches,
-            input_resources: Vec::new(),
-            output_resources: Vec::from([ "draw".into() ]),
+            input_resources: Vec::from( [ 0 ]),
+            output_resources: Vec::from([ 0 ]),
         },
         Pass {
             shader: "examples/draworchestra/shaders/blur.comp".to_string(),
             dispatches: full_screen_dispatches,
-            input_resources: Vec::from([ "draw".into() ]),
-            output_resources: Vec::from([ "draw".into() ]),
+            input_resources: Vec::from([ 0 ]),
+            output_resources: Vec::from([ 0 ]),
         }
     ]);
 

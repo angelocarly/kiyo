@@ -8,7 +8,8 @@ layout( binding = 0, rgba8 ) uniform image2D outImages[];
 layout( push_constant ) uniform PushConstants
 {
     float time;
-    int[ 8 ] images_ids;
+    int input_image;
+    int output_image;
 } constants;
 
 void main()

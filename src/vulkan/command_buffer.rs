@@ -65,6 +65,32 @@ impl CommandBuffer {
         }
     }
 
+    pub fn bind_push_descriptor_images(&self, pipeline: &dyn Pipeline, images: &Vec<Image>) {
+
+        let bindings = images.iter().map(|image| {
+            vk::DescriptorImageInfo::default()
+                .image_layout(vk::ImageLayout::GENERAL)
+                .image_view(image.image_view)
+                .sampler(image.sampler)
+        }).collect::<Vec<vk::DescriptorImageInfo>>();
+
+        let write_descriptor_set = WriteDescriptorSet::default()
+            .dst_binding(0)
+            .dst_array_element(0)
+            .descriptor_type(vk::DescriptorType::STORAGE_IMAGE)
+            .image_info(&bindings);
+
+        unsafe {
+            self.device_dep.device_push_descriptor.cmd_push_descriptor_set(
+                self.command_buffer,
+                pipeline.bind_point(),
+                pipeline.layout(),
+                0,
+                &[write_descriptor_set]
+            );
+        }
+    }
+
     pub fn bind_push_descriptor_image(&self, pipeline: &dyn Pipeline, image: &Image) {
 
         // TODO: Set bindings dynamically

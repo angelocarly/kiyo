@@ -11,6 +11,8 @@ layout( binding = 0, rgba8 ) uniform image2D outImage;
 layout( push_constant ) uniform PushConstants
 {
     float time;
+    int input_image;
+    int output_image;
 } constants;
 
 vec3 palette( in float t, in vec3 a, in vec3 b, in vec3 c, in vec3 d )
