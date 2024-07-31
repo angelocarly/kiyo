@@ -248,12 +248,13 @@ impl Renderer {
             );
         });
 
-        let out_image = &draw_orchestrator.images[0];
+        // Copy the draw image to the swapchain image
+        let output_image = &draw_orchestrator.images[1];
 
         // Synchronize between compute and transfer
         self.transition_image(
             command_buffer,
-            &out_image.handle(),
+            &output_image.handle(),
             vk::ImageLayout::GENERAL,
             vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
             vk::PipelineStageFlags::COMPUTE_SHADER,
@@ -262,12 +263,11 @@ impl Renderer {
             vk::AccessFlags::TRANSFER_READ
         );
 
-        // Copy draw image to the swapchain
         unsafe {
             self.device.handle()
                 .cmd_copy_image(
                     command_buffer.handle(),
-                    *out_image.handle(),
+                    *output_image.handle(),
                     vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
                     swapchain_image,
                     vk::ImageLayout::TRANSFER_DST_OPTIMAL,
@@ -275,8 +275,8 @@ impl Renderer {
                         vk::ImageCopy::default()
                             .extent(
                                 Extent3D::default()
-                                    .width(draw_orchestrator.images[0].width)
-                                    .height(draw_orchestrator.images[0].height)
+                                    .width(output_image.width)
+                                    .height(output_image.height)
                                     .depth(1)
                             )
                             .dst_offset(Offset3D::default())
@@ -312,7 +312,7 @@ impl Renderer {
         );
         self.transition_image(
             command_buffer,
-            &out_image.handle(),
+            &output_image.handle(),
             vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
             vk::ImageLayout::GENERAL,
             vk::PipelineStageFlags::TRANSFER,

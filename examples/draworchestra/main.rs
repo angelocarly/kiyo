@@ -17,6 +17,9 @@ fn main() {
     config.image_resources = Vec::from([
         ImageResource {
             id: 0,
+        },
+        ImageResource {
+            id: 1,
         }
     ]);
 
@@ -31,7 +34,7 @@ fn main() {
             shader: "examples/draworchestra/shaders/blur.comp".to_string(),
             dispatches: full_screen_dispatches,
             input_resources: Vec::from([ 0 ]),
-            output_resources: Vec::from([ 0 ]),
+            output_resources: Vec::from([ 1 ]),
         }
     ]);
 

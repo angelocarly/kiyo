@@ -55,7 +55,7 @@ impl DrawOrchestrator {
             vk::DescriptorSetLayoutBinding::default()
                 .binding(0)
                 .descriptor_type(vk::DescriptorType::STORAGE_IMAGE)
-                .descriptor_count(1)
+                .descriptor_count(draw_config.image_resources.iter().len() as u32 )
                 .stage_flags(vk::ShaderStageFlags::COMPUTE | vk::ShaderStageFlags::FRAGMENT)
         ];
         let compute_descriptor_set_layout = DescriptorSetLayout::new_push_descriptor(

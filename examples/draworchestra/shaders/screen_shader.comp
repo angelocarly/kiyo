@@ -6,13 +6,13 @@ layout ( local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_siz
 #define hash2(p) fract(sin((p)*mat2(127.1,311.7, 269.5,183.3)) * 43758.5453123)
 #define hash3(p) fract(sin((p)*mat3(127.1,311.7, 74.7,  269.5,183.3,246.1,  113.5,271.9,124.6))*43758.5453123)
 
-layout( binding = 0, rgba8 ) uniform image2D outImage;
+layout( binding = 0, rgba8 ) uniform image2D images[2];
 
 layout( push_constant ) uniform PushConstants
 {
     float time;
-    int input_image;
-    int output_image;
+    int in_image;
+    int out_image;
 } constants;
 
 vec3 palette( in float t, in vec3 a, in vec3 b, in vec3 c, in vec3 d )
@@ -60,7 +60,7 @@ vec3 color( vec3 pos )
 void main()
 {
     ivec2 p = ivec2( gl_GlobalInvocationID.xy );
-    ivec2 screenSize = imageSize( outImage );
+    ivec2 screenSize = imageSize( images[ constants.out_image ] );
     if( p.x > screenSize.x || p.y > screenSize.y )
     {
         return;
@@ -68,5 +68,5 @@ void main()
 
     vec3 pos = vec3( float( p.x ) / float( screenSize.x ), float( p.y ) / float( screenSize.y ), 0.0f ) - 0.5f;
 
-    imageStore( outImage, p, vec4( sin( pos.x * 3000.0f ), sin( pos.y * 3000.0f ), 0.0f, 1.0f ) );
+    imageStore( images[ constants.out_image ], p, vec4( sin( pos.x * 3000.0f ), sin( pos.y * 3000.0f ), 0.0f, 1.0f ) );
 }
