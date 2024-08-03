@@ -7,7 +7,7 @@ description = "Lightweight compute shader playground"
 readme = "README.md"
 repository = "https://github.com/angelocarly/kiyo"
 license = "GPL-3"
-license-file = "LICENSE.md"
+license-file = "LICENSE"
 keywords = ["compute", "vulkan", "render", "engine", "art"]
 categories = ["rendering::engine"]
 
