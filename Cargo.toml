@@ -1,7 +1,15 @@
 [package]
 name = "kiyo"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
+authors = ["Angelo Carly <angelo.carly@protonmail.com"]
+description = "Lightweight compute shader playground"
+readme = "README.md"
+repository = "https://github.com/angelocarly/kiyo"
+license = "GPL-3"
+license-file = "LICENSE.md"
+keywords = ["compute", "vulkan", "render", "engine", "art"]
+categories = ["rendering::engine"]
 
 [dependencies]
 ash = { version = "0.38.0", features = ["linked"] }
@@ -9,7 +17,7 @@ ash-window = "0.13.0"
 winit = "0.29.15"
 shaderc = "0.8.3"
 log = "0.4.21"
-gpu-allocator = { git = "https://github.com/Traverse-Research/gpu-allocator.git", rev = "4b5c0d4" }
+gpu-allocator = { version = "0.27.0" }
 egui = "0.24.1"
 egui-ash = { version = "0.4.0", features = ["gpu-allocator"] }
 glam = "0.28.0"
