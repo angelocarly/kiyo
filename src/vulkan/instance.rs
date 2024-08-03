@@ -61,8 +61,8 @@ pub struct Instance {
 
 impl Instance {
     pub fn new(entry: &Entry, display_handle: RawDisplayHandle) -> Self {
-        let app_name = CString::new("Akai").unwrap();
-        let engine_name = CString::new("Akai Engine").unwrap();
+        let app_name = CString::new("kiyo").unwrap();
+        let engine_name = CString::new("kiyo Engine").unwrap();
         let app_info = vk::ApplicationInfo::default()
             .application_version(0)
             .engine_name(engine_name.as_c_str())

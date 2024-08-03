@@ -1,10 +1,10 @@
 //use std::time::SystemTime;
 //use ash::vk;
-//use akai::application::{Application, GameHandler, RenderContext};
-//use akai::vulkan::{ComputePipeline, DescriptorSetLayout, GraphicsPipeline, Image};
+//use kiyo::application::{Application, GameHandler, RenderContext};
+//use kiyo::vulkan::{ComputePipeline, DescriptorSetLayout, GraphicsPipeline, Image};
 //use winit::event_loop::EventLoop;
-//use akai::renderer::Renderer;
-//use akai::window::Window;
+//use kiyo::renderer::Renderer;
+//use kiyo::window::Window;
 //
 //struct Game {
 //    image: Image,
@@ -125,7 +125,7 @@
 //
 //fn main() {
 //    let event_loop = EventLoop::new().expect("Failed to create event loop.");
-//    let mut window = Window::create(&event_loop, "Akai engine", 1000, 1000);
+//    let mut window = Window::create(&event_loop, "kiyo engine", 1000, 1000);
 //    let mut renderer = Renderer::new(&window);
 //    let mut game = Game::new(&mut renderer);
 //

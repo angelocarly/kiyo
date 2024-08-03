@@ -38,7 +38,7 @@ impl App {
         let start_time = SystemTime::now();
 
         let event_loop = EventLoop::new().expect("Failed to create event loop.");
-        let window = Window::create(&event_loop, "Akai engine", 1000, 1000);
+        let window = Window::create(&event_loop, "kiyo engine", 1000, 1000);
         let renderer = Renderer::new(&window);
 
         App {

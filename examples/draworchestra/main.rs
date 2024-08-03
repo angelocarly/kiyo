@@ -1,6 +1,6 @@
 use glam::{UVec2, UVec3};
-use akai::app::app::App;
-use akai::app::draw_orch::{DrawConfig, ImageResource, Pass};
+use kiyo::app::app::App;
+use kiyo::app::draw_orch::{DrawConfig, ImageResource, Pass};
 
 fn main() {
     let mut config = DrawConfig::new();
