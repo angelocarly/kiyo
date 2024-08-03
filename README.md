@@ -1,10 +1,10 @@
-# Akai
+# Kiyo
 ![build](https://github.com/angelocarly/akai/actions/workflows/rust.yml/badge.svg)  
 Generative art graphics engine using [ash](https://github.com/ash-rs/ash).
 
 ## Architecture
 
-Akai currently contains two nondistinct layers.
+Kiyo currently contains two nondistinct layers.
 - Vulkan wrapper code
 - Engine management code
 
