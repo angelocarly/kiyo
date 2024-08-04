@@ -255,7 +255,7 @@ impl Renderer {
         });
 
         // Copy the draw image to the swapchain image
-        let output_image = &draw_orchestrator.images[1];
+        let output_image = &draw_orchestrator.images.last().expect("No image to output");
 
         // Synchronize between compute and transfer
         self.transition_image(
