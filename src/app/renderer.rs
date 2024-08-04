@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Instant;
 use ash::vk;
 use ash::vk::{Extent3D, FenceCreateFlags, ImageAspectFlags, ImageSubresourceLayers, Offset3D, PhysicalDevice, Queue};
 use bytemuck::{Pod, Zeroable};
@@ -21,6 +22,7 @@ pub struct Renderer {
     pub device: Device,
     pub physical_device: PhysicalDevice,
     pub instance: Instance,
+    pub start_time: Instant,
 }
 
 #[repr(C)]
@@ -78,6 +80,8 @@ impl Renderer {
             }
         }).collect::<Vec<vk::Fence>>();
 
+        let start_time = std::time::Instant::now();
+
         Self {
             entry,
             device,
@@ -93,6 +97,7 @@ impl Renderer {
             command_pool,
             command_buffers,
             frame_index: 0,
+            start_time,
         }
     }
 
@@ -222,11 +227,12 @@ impl Renderer {
 
 
         // Render to the draw image
+        let current_time = self.start_time.elapsed().as_secs_f32();
         draw_orchestrator.passes.iter().for_each(|p| {
 
             command_buffer.bind_pipeline(&p.compute_pipeline);
             let push_constants = PushConstants {
-                time: 0.0,
+                time: current_time,
                 in_image: p.in_images[0],
                 out_image: p.out_images[0],
             };
