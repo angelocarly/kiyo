@@ -1,5 +1,6 @@
 # Kiyo
-![build](https://github.com/angelocarly/akai/actions/workflows/rust.yml/badge.svg)  
+![build](https://github.com/angelocarly/akai/actions/workflows/rust.yml/badge.svg)
+![crate](https://img.shields.io/crates/v/kiyo)  
 Generative art graphics engine using [ash](https://github.com/ash-rs/ash).
 
 ## Architecture
