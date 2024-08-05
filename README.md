@@ -28,9 +28,9 @@ that.
 Make sure you have the [Vulkan SDK](https://vulkan.lunarg.com) installed.  
 Then build `akai`:
 ```
-git clone https://github.com/angelocarly/akai.git
-cd akai
-cargo run --example compute-pipeline
+git clone https://github.com/angelocarly/kiyo.git
+cd kiyo
+cargo run --example draworchestra
 ```
 
 ## Libraries
