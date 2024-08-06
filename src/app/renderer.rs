@@ -200,7 +200,7 @@ impl Renderer {
                         *i.handle(),
                         vk::ImageLayout::GENERAL,
                         &vk::ClearColorValue {
-                            float32: [0.0, 0.0, 1.0, 1.0]
+                            float32: [0.0, 0.0, 0.0, 1.0]
                         },
                         &[vk::ImageSubresourceRange {
                             aspect_mask: ImageAspectFlags::COLOR,
