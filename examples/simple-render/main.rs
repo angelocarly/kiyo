@@ -15,13 +15,13 @@ fn main() {
 
     config.passes = Vec::from([
         Pass {
-            shader: "examples/draworchestra/shaders/screen_shader.comp".to_string(),
+            shader: "examples/simple-render/shaders/screen_shader.comp".to_string(),
             dispatches: DispatchConfig::FullScreen,
             input_resources: Vec::from( [ 0 ]),
             output_resources: Vec::from([ 0 ]),
         },
         Pass {
-            shader: "examples/draworchestra/shaders/blur.comp".to_string(),
+            shader: "examples/simple-render/shaders/blur.comp".to_string(),
             dispatches: DispatchConfig::FullScreen,
             input_resources: Vec::from([ 0 ]),
             output_resources: Vec::from([ 1 ]),

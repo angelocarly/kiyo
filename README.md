@@ -31,7 +31,7 @@ Then build `akai`:
 ```
 git clone https://github.com/angelocarly/kiyo.git
 cd kiyo
-cargo run --example draworchestra
+cargo run --example simple-render
 ```
 
 ## Libraries
