@@ -29,8 +29,8 @@ pub struct Renderer {
 #[derive(Copy, Clone, Pod, Zeroable)]
 pub struct PushConstants {
     pub time: f32,
-    pub in_image: u32,
-    pub out_image: u32,
+    pub in_image: i32,
+    pub out_image: i32,
 }
 
 impl Renderer {
@@ -233,8 +233,8 @@ impl Renderer {
             command_buffer.bind_pipeline(&p.compute_pipeline);
             let push_constants = PushConstants {
                 time: current_time,
-                in_image: p.in_images[0],
-                out_image: p.out_images[0],
+                in_image: p.in_images.first().map(|&x| x as i32).unwrap_or(-1),
+                out_image: p.out_images.first().map(|&x| x as i32).unwrap_or(-1),
             };
             command_buffer.push_constants(&p.compute_pipeline, vk::ShaderStageFlags::COMPUTE, 0, &bytemuck::cast_slice(std::slice::from_ref(&push_constants)));
             command_buffer.bind_push_descriptor_images(&p.compute_pipeline, &draw_orchestrator.images);
