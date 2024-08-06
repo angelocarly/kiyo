@@ -25,4 +25,4 @@ bytemuck = "1.16.1"
 [dev-dependencies]
 
 [[example]]
-name = "draworchestra"
+name = "simple-render"

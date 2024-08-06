@@ -1,4 +1,5 @@
 use std::time::SystemTime;
+use glam::UVec2;
 use winit::event::{Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
@@ -33,12 +34,12 @@ pub struct App {
 }
 
 impl App {
-    pub fn new() -> App{
+    pub fn new(width: u32, height: u32) -> App{
 
         let start_time = SystemTime::now();
 
         let event_loop = EventLoop::new().expect("Failed to create event loop.");
-        let window = Window::create(&event_loop, "kiyo engine", 1000, 1000);
+        let window = Window::create(&event_loop, "kiyo engine", width, height);
         let renderer = Renderer::new(&window);
 
         App {
@@ -51,7 +52,8 @@ impl App {
 
     pub fn run(mut self, draw_config: DrawConfig) {
 
-        let mut orchestrator = DrawOrchestrator::new(&mut self.renderer, draw_config);
+        let resolution = UVec2::new( self.window.get_extent().width, self.window.get_extent().height );
+        let mut orchestrator = DrawOrchestrator::new(&mut self.renderer, resolution, draw_config);
 
         self.event_loop
             .run_on_demand( |event, elwt| {
@@ -68,6 +70,8 @@ impl App {
                             WindowEvent::RedrawRequested => {
                                 self.renderer.draw_frame(&mut orchestrator);
                             },
+                            WindowEvent::Resized( _ ) => {
+                            }
                             _ => (),
                         }
                     }

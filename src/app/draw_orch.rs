@@ -1,7 +1,7 @@
 use std::mem::size_of;
 use std::sync::Arc;
 use ash::vk;
-use glam::UVec2;
+use glam::{UVec2, UVec3};
 use crate::app::{Renderer};
 use crate::app::renderer::PushConstants;
 use crate::vulkan::{CommandBuffer, ComputePipeline, DescriptorSetLayout, Image};
@@ -11,9 +11,15 @@ pub struct ImageResource {
     pub id: u32,
 }
 
+pub enum DispatchConfig
+{
+    Count( u32, u32, u32 ),
+    FullScreen,
+}
+
 pub struct Pass {
     pub shader: String,
-    pub dispatches: glam::UVec3,
+    pub dispatches: DispatchConfig,
     pub input_resources: Vec<u32>,
     pub output_resources: Vec<u32>,
 }
@@ -21,7 +27,6 @@ pub struct Pass {
 pub struct DrawConfig {
     pub passes: Vec<Pass>,
     pub image_resources: Vec<ImageResource>,
-    pub resolution: UVec2,
 }
 
 impl DrawConfig {
@@ -29,7 +34,6 @@ impl DrawConfig {
         DrawConfig {
             passes: Vec::new(),
             image_resources: Vec::new(),
-            resolution: UVec2::new(1000, 1000)
         }
     }
 }
@@ -48,7 +52,7 @@ pub struct DrawOrchestrator {
 }
 
 impl DrawOrchestrator {
-    pub fn new(renderer: &mut Renderer, draw_config: DrawConfig) -> DrawOrchestrator {
+    pub fn new(renderer: &mut Renderer, resolution: UVec2, draw_config: DrawConfig) -> DrawOrchestrator {
 
         // Layout
         let layout_bindings = &[
@@ -68,8 +72,8 @@ impl DrawOrchestrator {
             Image::new(
                 &renderer.device,
                 &mut renderer.allocator,
-                draw_config.resolution.x,
-                draw_config.resolution.y,
+                resolution.x,
+                resolution.y,
                 vk::ImageUsageFlags::STORAGE | vk::ImageUsageFlags::TRANSFER_SRC | vk::ImageUsageFlags::TRANSFER_DST
             )
         }).collect::<Vec<Image>>();
@@ -92,6 +96,13 @@ impl DrawOrchestrator {
                 .size(size_of::<PushConstants>() as u32),
         ];
 
+        let workgroup_size = UVec3::new( 32, 32, 1 );
+        let full_screen_dispatches = UVec3::new(
+            (resolution.x as f32 / workgroup_size.x as f32).ceil() as u32,
+            (resolution.y as f32 / workgroup_size.y as f32).ceil() as u32,
+            1
+        );
+
         // Passes
         let passes = draw_config.passes
             .iter()
@@ -102,9 +113,17 @@ impl DrawOrchestrator {
                     &[&compute_descriptor_set_layout],
                     push_constant_ranges
                 );
+                let dispatches = match c.dispatches {
+                    DispatchConfig::Count(x, y, z) => {
+                        UVec3::new(x, y, z)
+                    }
+                    DispatchConfig::FullScreen => {
+                        full_screen_dispatches
+                    }
+                };
                 ShaderPass {
                     compute_pipeline,
-                    dispatches: c.dispatches,
+                    dispatches: dispatches,
                     in_images: c.input_resources.clone(),
                     out_images: c.output_resources.clone(),
                 }
