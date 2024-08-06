@@ -16,6 +16,7 @@ impl Window {
     pub fn create(event_loop: &EventLoop<()>, window_title: &str, width: u32, height: u32) -> Window {
         let window = winit::window::WindowBuilder::new()
             .with_title(window_title)
+            .with_resizable(false)
             .with_inner_size(winit::dpi::LogicalSize::new(width, height))
             .build(event_loop)
             .expect("Failed to create window.");
