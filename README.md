@@ -10,7 +10,7 @@ Kiyo provides a simple configuration interface to run one or more shaders, and s
 ## Building & running
 
 Make sure you have the [Vulkan SDK](https://vulkan.lunarg.com) installed.  
-Then build `akai`:
+Then build `kiyo`:
 ```
 git clone https://github.com/angelocarly/kiyo.git
 cd kiyo
