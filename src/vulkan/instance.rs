@@ -6,6 +6,7 @@ use std::os::raw::c_void;
 use std::{ptr, vec};
 use std::sync::Arc;
 use ash::khr::surface;
+use log::{debug, error, info, warn};
 use winit::raw_window_handle::RawDisplayHandle;
 use crate::vulkan::surface::Surface;
 
@@ -19,21 +20,20 @@ unsafe extern "system" fn vulkan_debug_utils_callback(
     p_callback_data: *const vk::DebugUtilsMessengerCallbackDataEXT,
     _p_user_data: *mut c_void,
 ) -> vk::Bool32 {
-    let severity = match message_severity {
-        vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => "[Verbose]",
-        vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => "[Warning]",
-        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => "[Error]",
-        vk::DebugUtilsMessageSeverityFlagsEXT::INFO => "[Info]",
-        _ => "[Unknown]",
-    };
     let types = match message_type {
-        vk::DebugUtilsMessageTypeFlagsEXT::GENERAL => "[General]",
-        vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE => "[Performance]",
+        vk::DebugUtilsMessageTypeFlagsEXT::GENERAL => "",
+        vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE => "",
         vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION => "[Validation]",
-        _ => "[Unknown]",
+        _ => "",
     };
-    let message = CStr::from_ptr((*p_callback_data).p_message);
-    println!("[Debug]{}{}{:?}", severity, types, message);
+    let message = CStr::from_ptr((*p_callback_data).p_message).to_str().unwrap();
+    match message_severity {
+        vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => debug!("{} {}", types, message),
+        vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => println!("{} {}", types, message),
+        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => error!("{} {}", types, message),
+        vk::DebugUtilsMessageSeverityFlagsEXT::INFO => info!("{} {}", types, message),
+        _ => warn!("{} {}", types, message),
+    };
 
     vk::FALSE
 }

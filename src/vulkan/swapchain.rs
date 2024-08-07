@@ -2,6 +2,7 @@ use std::sync::Arc;
 use ash::khr::swapchain;
 use ash::vk;
 use ash::vk::{CompositeAlphaFlagsKHR, ImageUsageFlags, SharingMode, SurfaceFormatKHR, SwapchainKHR};
+use log::info;
 use crate::app::Window;
 use crate::vulkan::{Device, Instance, Surface};
 use crate::vulkan::device::DeviceInner;
@@ -45,7 +46,7 @@ impl Swapchain {
             })
             .unwrap_or(available_formats.first().expect("No surface format found"));
 
-        println!("Using surface format: {:?}", surface_format);
+        info!("Using surface format: {:?}", surface_format);
 
         let surface_capabilities = surface.get_surface_capabilities(physical_device);
 

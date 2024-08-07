@@ -1,5 +1,7 @@
 use std::time::SystemTime;
+use env_logger::{Builder, Env};
 use glam::UVec2;
+use log::LevelFilter;
 use winit::event::{Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
@@ -34,8 +36,25 @@ pub struct App {
 }
 
 impl App {
+
+    fn init_logger() {
+        let env = Env::default()
+            .filter_or("LOG_LEVEL", "trace")
+            .write_style_or("LOG_STYLE", "always");
+
+        Builder::from_env(env)
+            .format_level(true)
+            // Millisecond formatting
+            .format_timestamp_millis()
+            .filter(Some("winit"), LevelFilter::Error)
+            .init();
+    }
+
     pub fn new(width: u32, height: u32) -> App{
 
+        Self::init_logger();
+
+        // App setup
         let start_time = SystemTime::now();
 
         let event_loop = EventLoop::new().expect("Failed to create event loop.");
