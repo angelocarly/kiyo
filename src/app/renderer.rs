@@ -160,37 +160,6 @@ impl Renderer {
             }
         );
 
-        // Clear the swapchain image
-        let swapchain_image = self.swapchain.get_images()[frame_index];
-        self.transition_image(
-            command_buffer,
-            &swapchain_image,
-            vk::ImageLayout::PRESENT_SRC_KHR,
-            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-            vk::PipelineStageFlags::TOP_OF_PIPE,
-            vk::PipelineStageFlags::TRANSFER,
-            vk::AccessFlags::NONE,
-            vk::AccessFlags::TRANSFER_WRITE
-        );
-        unsafe {
-            self.device.handle()
-                .cmd_clear_color_image(
-                    command_buffer.handle(),
-                    swapchain_image,
-                    vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                    &vk::ClearColorValue {
-                           float32: [0.0, 1.0, 0.0, 1.0]
-                    },
-                    &[vk::ImageSubresourceRange {
-                        aspect_mask: ImageAspectFlags::COLOR,
-                        base_mip_level: 0,
-                        level_count: 1,
-                        base_array_layer: 0,
-                        layer_count: 1,
-                    }]
-                );
-        }
-
         // Clear all images
         draw_orchestrator.images.iter().for_each(|i| {
             unsafe {
@@ -267,6 +236,19 @@ impl Renderer {
             vk::PipelineStageFlags::TRANSFER,
             vk::AccessFlags::SHADER_WRITE,
             vk::AccessFlags::TRANSFER_READ
+        );
+
+        // Transition the swapchain image
+        let swapchain_image = self.swapchain.get_images()[frame_index];
+        self.transition_image(
+            command_buffer,
+            &swapchain_image,
+            vk::ImageLayout::PRESENT_SRC_KHR,
+            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+            vk::PipelineStageFlags::TOP_OF_PIPE,
+            vk::PipelineStageFlags::TRANSFER,
+            vk::AccessFlags::NONE,
+            vk::AccessFlags::TRANSFER_WRITE
         );
 
         unsafe {
