@@ -1,17 +1,8 @@
 use kiyo::app::app::App;
-use kiyo::app::draw_orch::{DispatchConfig, DrawConfig, ImageResource, Pass};
+use kiyo::app::draw_orch::{DispatchConfig, DrawConfig, Pass};
 
 fn main() {
     let mut config = DrawConfig::new();
-
-    config.image_resources = Vec::from([
-        ImageResource {
-            id: 0,
-        },
-        ImageResource {
-            id: 1,
-        }
-    ]);
 
     config.passes = Vec::from([
         Pass {

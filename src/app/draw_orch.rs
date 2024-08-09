@@ -26,14 +26,12 @@ pub struct Pass {
 
 pub struct DrawConfig {
     pub passes: Vec<Pass>,
-    pub image_resources: Vec<ImageResource>,
 }
 
 impl DrawConfig {
     pub fn new() -> DrawConfig {
         DrawConfig {
             passes: Vec::new(),
-            image_resources: Vec::new(),
         }
     }
 }
@@ -54,12 +52,16 @@ pub struct DrawOrchestrator {
 impl DrawOrchestrator {
     pub fn new(renderer: &mut Renderer, resolution: UVec2, draw_config: DrawConfig) -> DrawOrchestrator {
 
+        let image_count = draw_config.passes.iter()
+            .map(|p| p.output_resources.iter())
+            .flatten().max().unwrap() + 1;
+
         // Layout
         let layout_bindings = &[
             vk::DescriptorSetLayoutBinding::default()
                 .binding(0)
                 .descriptor_type(vk::DescriptorType::STORAGE_IMAGE)
-                .descriptor_count(draw_config.image_resources.iter().len() as u32 )
+                .descriptor_count(image_count)
                 .stage_flags(vk::ShaderStageFlags::COMPUTE | vk::ShaderStageFlags::FRAGMENT)
         ];
         let compute_descriptor_set_layout = DescriptorSetLayout::new_push_descriptor(
@@ -68,7 +70,7 @@ impl DrawOrchestrator {
         );
 
         // Images
-        let images = draw_config.image_resources.iter().map(|_| {
+        let images = (0..image_count).map(|_| {
             Image::new(
                 &renderer.device,
                 &mut renderer.allocator,
