@@ -47,6 +47,7 @@ impl App {
             // Millisecond formatting
             .format_timestamp_millis()
             .filter(Some("winit"), LevelFilter::Error)
+            .filter(Some("calloop"), LevelFilter::Error)
             .init();
     }
 
