@@ -7,6 +7,8 @@ A lightweight compute shader engine using [ash](https://github.com/ash-rs/ash).
 
 Kiyo provides a simple configuration interface to run one or more shaders, and synchronize their input/output images.
 
+You can find examples in [./examples](./examples) and in my [toy project repository](https://github.com/angelocarly/kiyo-projects).
+
 ## Building & running
 
 Make sure you have the [Vulkan SDK](https://vulkan.lunarg.com) installed.  
