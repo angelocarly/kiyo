@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use ash::khr::swapchain;
 use ash::vk;
-use ash::vk::{CompositeAlphaFlagsKHR, ImageUsageFlags, SharingMode, SurfaceFormatKHR, SwapchainKHR};
+use ash::vk::{CompositeAlphaFlagsKHR, ImageUsageFlags, PresentModeKHR, SharingMode, SurfaceFormatKHR, SwapchainKHR};
 use log::info;
 use crate::app::Window;
 use crate::vulkan::{Device, Instance, Surface};
@@ -35,7 +35,14 @@ pub struct Swapchain {
 }
 
 impl Swapchain {
-    pub fn new(instance: &Instance, physical_device: &vk::PhysicalDevice, device: &Device, window: &Window, surface: &Surface) -> Swapchain {
+    pub fn new(
+        instance: &Instance,
+        physical_device: &vk::PhysicalDevice,
+        device: &Device,
+        window: &Window,
+        surface: &Surface,
+        preferred_present_mode: PresentModeKHR
+    ) -> Swapchain {
         let swapchain_loader = swapchain::Device::new(instance.handle(), device.handle());
 
         let available_formats = surface.get_formats(physical_device);
@@ -66,7 +73,7 @@ impl Swapchain {
         let present_mode = present_modes
             .iter()
             .cloned()
-            .find(|&mode| mode == vk::PresentModeKHR::MAILBOX)
+            .find(|&mode| mode == preferred_present_mode)
             .unwrap_or(vk::PresentModeKHR::FIFO);
 
         let extent = match surface_capabilities.current_extent.width {
