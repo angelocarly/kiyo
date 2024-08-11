@@ -1,7 +1,7 @@
 use std::time::SystemTime;
 use env_logger::{Builder, Env};
 use glam::UVec2;
-use log::LevelFilter;
+use log::{info, LevelFilter};
 use winit::event::{Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
@@ -33,6 +33,14 @@ pub struct App {
     renderer: Renderer,
     window: Window,
     event_loop: EventLoop<()>,
+    pub app_config: AppConfig,
+}
+
+pub struct AppConfig {
+    pub width: u32,
+    pub height: u32,
+    pub vsync: bool,
+    pub log_fps: bool,
 }
 
 impl App {
@@ -51,7 +59,7 @@ impl App {
             .init();
     }
 
-    pub fn new(width: u32, height: u32) -> App{
+    pub fn new(app_config: AppConfig) -> App{
 
         Self::init_logger();
 
@@ -59,14 +67,15 @@ impl App {
         let start_time = SystemTime::now();
 
         let event_loop = EventLoop::new().expect("Failed to create event loop.");
-        let window = Window::create(&event_loop, "kiyo engine", width, height);
-        let renderer = Renderer::new(&window);
+        let window = Window::create(&event_loop, "kiyo engine", app_config.width, app_config.height);
+        let renderer = Renderer::new(&window, app_config.vsync);
 
         App {
             event_loop,
             window,
             renderer,
             _start_time: start_time,
+            app_config,
         }
     }
 
@@ -75,6 +84,9 @@ impl App {
         let resolution = UVec2::new( self.window.get_extent().width, self.window.get_extent().height );
         let mut orchestrator = DrawOrchestrator::new(&mut self.renderer, resolution, draw_config);
 
+        let mut last_print_time = SystemTime::now();
+        let mut frame_count = 0;
+
         self.event_loop
             .run_on_demand( |event, elwt| {
                 elwt.set_control_flow(ControlFlow::Poll);
@@ -82,6 +94,18 @@ impl App {
                 match event {
                     | Event::NewEvents(StartCause::Poll) => {
                         self.renderer.draw_frame(&mut orchestrator);
+
+                        if self.app_config.log_fps {
+                            let current_frame_time = SystemTime::now();
+                            let elapsed = current_frame_time.duration_since(last_print_time).unwrap();
+                            frame_count += 1;
+
+                            if elapsed.as_secs() >= 1 {
+                                info!("fps: {}, frametime: {:.3}ms", frame_count, elapsed.as_millis() as f32 / frame_count as f32);
+                                frame_count = 0;
+                                last_print_time = current_frame_time;
+                            }
+                        }
                     }
                     | Event::WindowEvent { event, .. } => {
                         self.window.window_event( event.clone(), elwt );

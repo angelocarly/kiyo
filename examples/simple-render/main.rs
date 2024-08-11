@@ -1,9 +1,16 @@
-use kiyo::app::app::App;
+use kiyo::app::app::{App, AppConfig};
 use kiyo::app::draw_orch::{DispatchConfig, DrawConfig, Pass};
 
 fn main() {
-    let mut config = DrawConfig::new();
 
+    let app = App::new(AppConfig {
+        width: 1000,
+        height: 1000,
+        vsync: true,
+        log_fps: true,
+    });
+
+    let mut config = DrawConfig::new();
     config.passes = Vec::from([
         Pass {
             shader: "examples/simple-render/shaders/screen_shader.comp".to_string(),
@@ -19,6 +26,5 @@ fn main() {
         }
     ]);
 
-    let app = App::new(1000, 1000);
     app.run(config);
 }

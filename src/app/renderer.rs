@@ -34,7 +34,7 @@ pub struct PushConstants {
 }
 
 impl Renderer {
-    pub fn new(window: &Window) -> Renderer {
+    pub fn new(window: &Window, vsync: bool) -> Renderer {
         let entry = ash::Entry::linked();
         let instance = Instance::new(&entry, window.display_handle());
         let surface = Surface::new(&entry, &instance, &window);
@@ -52,7 +52,12 @@ impl Renderer {
             allocation_sizes: Default::default(),
         });
 
-        let swapchain = Swapchain::new(&instance, &physical_device, &device, &window, &surface);
+        let present_mode = if vsync {
+            vk::PresentModeKHR::FIFO
+        } else {
+            vk::PresentModeKHR::IMMEDIATE
+        };
+        let swapchain = Swapchain::new(&instance, &physical_device, &device, &window, &surface, present_mode);
         Self::transition_swapchain_images(&device, &command_pool, &queue, &swapchain);
 
         let command_buffers = (0..swapchain.get_image_count()).map(|_| {
