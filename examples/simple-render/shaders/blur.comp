@@ -22,7 +22,7 @@ void main()
     }
 
     vec4 c = vec4( 0.0f );
-    int range = 5;
+    int range = 2;
     for( int x = -range; x <= range; x++ )
     {
         for( int y = -range; y <= range; y++ )
