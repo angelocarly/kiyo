@@ -12,11 +12,20 @@ You can find examples in [./examples](./examples) and in my [toy project reposit
 ## Building & running
 
 Make sure you have the [Vulkan SDK](https://vulkan.lunarg.com) installed.  
-Then build `kiyo`:
+Then build and run `kiyo`:
 ```
 git clone https://github.com/angelocarly/kiyo.git
 cd kiyo
 cargo run --example simple-render
+```
+
+### Mac
+In order to debug Kiyo on Mac, you need to provide the following environment variables:
+```bash
+VULKAN_SDK=$HOME/VulkanSDK/<version>/macOS
+DYLD_FALLBACK_LIBRARY_PATH=$VULKAN_SDK/lib
+VK_ICD_FILENAMES=$VULKAN_SDK/share/vulkan/icd.d/MoltenVK_icd.json
+VK_LAYER_PATH=$VULKAN_SDK/share/vulkan/explicit_layer.d
 ```
 
 ## Libraries
