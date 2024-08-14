@@ -142,14 +142,12 @@ impl Device {
         command_buffer: &CommandBuffer
     ) {
         let command_buffers = [command_buffer.handle()];
-        let mut submit_info = vk::SubmitInfo::default()
-            .command_buffers(&command_buffers);
-
         let wait_semaphores = [wait_semaphore];
         let signal_semaphores = [signal_semaphore];
-        let wait_dst_stage_masks = [PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
+        let wait_dst_stage_masks = [PipelineStageFlags::TRANSFER];
 
-        submit_info = submit_info
+        let submit_info = vk::SubmitInfo::default()
+            .command_buffers(&command_buffers)
             .wait_semaphores(&wait_semaphores)
             .signal_semaphores(&signal_semaphores)
             .wait_dst_stage_mask(&wait_dst_stage_masks);

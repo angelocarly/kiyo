@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::Instant;
 use ash::vk;
-use ash::vk::{Extent3D, FenceCreateFlags, ImageAspectFlags, ImageSubresourceLayers, Offset3D, PhysicalDevice, Queue};
+use ash::vk::{FenceCreateFlags, ImageAspectFlags, ImageSubresourceLayers, Offset3D, PhysicalDevice, Queue};
 use bytemuck::{Pod, Zeroable};
 use gpu_allocator::vulkan::{AllocatorCreateDesc};
 use crate::app::{DrawOrchestrator, Window};
@@ -140,41 +140,33 @@ impl Renderer {
         image_command_buffer.end();
         device.submit_single_time_command(*queue, image_command_buffer);
     }
-
-    fn record_command_buffer(&mut self, frame_index: usize, draw_orchestrator: &mut DrawOrchestrator) {
+    
+    fn record_command_buffer(&mut self, frame_index: usize, image_index: usize, draw_orchestrator: &mut DrawOrchestrator) {
 
         let command_buffer = &self.command_buffers[frame_index];
 
         command_buffer.begin();
 
-        // Setup dynamic state
-        command_buffer.set_scissor(
-            vk::Rect2D {
-                offset: vk::Offset2D { x: 0, y: 0 },
-                extent: self.swapchain.get_extent(),
-            }
-        );
-        command_buffer.set_viewport(
-            vk::Viewport {
-                x: 0.0,
-                y: 0.0,
-                width: self.swapchain.get_extent().width as f32,
-                height: self.swapchain.get_extent().height as f32,
-                min_depth: 0.0,
-                max_depth: 1.0,
-            }
-        );
+        for i in &draw_orchestrator.images {
+            self.transition_image(
+                command_buffer,
+                &i.image,
+                vk::ImageLayout::GENERAL,
+                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                vk::PipelineStageFlags::TOP_OF_PIPE,
+                vk::PipelineStageFlags::TRANSFER,
+                vk::AccessFlags::NONE,
+                vk::AccessFlags::TRANSFER_WRITE
+            );
 
-        // Clear all images
-        draw_orchestrator.images.iter().for_each(|i| {
             unsafe {
                 self.device.handle()
                     .cmd_clear_color_image(
                         command_buffer.handle(),
-                        *i.handle(),
-                        vk::ImageLayout::GENERAL,
+                        i.image,
+                        vk::ImageLayout::TRANSFER_DST_OPTIMAL,
                         &vk::ClearColorValue {
-                            float32: [0.0, 0.0, 0.0, 1.0]
+                            float32: [1.0, 0.0, 0.0, 1.0]
                         },
                         &[vk::ImageSubresourceRange {
                             aspect_mask: ImageAspectFlags::COLOR,
@@ -186,24 +178,21 @@ impl Renderer {
                     );
             }
 
-            // Synchronize between clear and the compute
             self.transition_image(
                 command_buffer,
-                &i.handle(),
-                vk::ImageLayout::GENERAL,
+                &i.image,
+                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
                 vk::ImageLayout::GENERAL,
                 vk::PipelineStageFlags::TRANSFER,
                 vk::PipelineStageFlags::COMPUTE_SHADER,
                 vk::AccessFlags::TRANSFER_WRITE,
-                vk::AccessFlags::SHADER_READ
+                vk::AccessFlags::SHADER_WRITE
             );
-        });
+        }
 
-
-        // Render to the draw image
+        // Compute images
         let current_time = self.start_time.elapsed().as_secs_f32();
-        draw_orchestrator.passes.iter().for_each(|p| {
-
+        for p in &draw_orchestrator.passes {
             command_buffer.bind_pipeline(&p.compute_pipeline);
             let push_constants = PushConstants {
                 time: current_time,
@@ -214,37 +203,27 @@ impl Renderer {
             command_buffer.bind_push_descriptor_images(&p.compute_pipeline, &draw_orchestrator.images);
             command_buffer.dispatch(p.dispatches.x, p.dispatches.y, p.dispatches.z);
 
-            // Synchronize between compute and compute
-            let draw_image = &draw_orchestrator.images[p.out_images[0] as usize];
-            self.transition_image(
-                command_buffer,
-                &draw_image.handle(),
-                vk::ImageLayout::GENERAL,
-                vk::ImageLayout::GENERAL,
-                vk::PipelineStageFlags::COMPUTE_SHADER,
-                vk::PipelineStageFlags::COMPUTE_SHADER,
-                vk::AccessFlags::SHADER_WRITE,
-                vk::AccessFlags::SHADER_READ
-            );
-        });
+            // TODO: Add synchronization between passes
+        };
 
-        // Copy the draw image to the swapchain image
-        let output_image = &draw_orchestrator.images.last().expect("No image to output");
+        // Copy to swapchain
 
-        // Synchronize between compute and transfer
+        let output_image = draw_orchestrator.images.last().expect("No images found to output");
+
         self.transition_image(
             command_buffer,
-            &output_image.handle(),
+            &output_image.image,
             vk::ImageLayout::GENERAL,
             vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
-            vk::PipelineStageFlags::COMPUTE_SHADER,
             vk::PipelineStageFlags::TRANSFER,
-            vk::AccessFlags::SHADER_WRITE,
+            vk::PipelineStageFlags::TRANSFER,
+            vk::AccessFlags::TRANSFER_WRITE,
             vk::AccessFlags::TRANSFER_READ
         );
 
+        let swapchain_image = self.swapchain.get_images()[image_index];
+
         // Transition the swapchain image
-        let swapchain_image = self.swapchain.get_images()[frame_index];
         self.transition_image(
             command_buffer,
             &swapchain_image,
@@ -257,39 +236,56 @@ impl Renderer {
         );
 
         unsafe {
-            self.device.handle()
-                .cmd_copy_image(
-                    command_buffer.handle(),
-                    *output_image.handle(),
-                    vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
-                    swapchain_image,
-                    vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                    &[
-                        vk::ImageCopy::default()
-                            .extent(
-                                Extent3D::default()
-                                    .width(output_image.width)
-                                    .height(output_image.height)
-                                    .depth(1)
-                            )
-                            .dst_offset(Offset3D::default())
-                            .src_offset(Offset3D::default())
-                            .src_subresource(
-                                ImageSubresourceLayers::default()
-                                    .aspect_mask(ImageAspectFlags::COLOR)
-                                    .base_array_layer(0)
-                                    .layer_count(1)
-                                    .mip_level(0)
-                            )
-                            .dst_subresource(
-                                ImageSubresourceLayers::default()
-                                    .aspect_mask(ImageAspectFlags::COLOR)
-                                    .base_array_layer(0)
-                                    .layer_count(1)
-                                    .mip_level(0)
-                            )
-                    ]
-                )
+
+            self.device.handle().cmd_clear_color_image(
+                command_buffer.handle(),
+                swapchain_image,
+                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                &vk::ClearColorValue {
+                    float32: [0.0, 0.0, 0.0, 1.0]
+                },
+                &[vk::ImageSubresourceRange {
+                    aspect_mask: ImageAspectFlags::COLOR,
+                    base_mip_level: 0,
+                    level_count: 1,
+                    base_array_layer: 0,
+                    layer_count: 1,
+                }]
+            );
+
+            // Use a blit, as a copy doesn't synchronize properly to the swapchain on MoltenVK
+            self.device.handle().cmd_blit_image(
+                command_buffer.handle(),
+                output_image.image,
+                vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
+                swapchain_image,
+                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                &[vk::ImageBlit::default()
+                    .src_offsets([
+                        Offset3D::default(),
+                        Offset3D::default().x(output_image.width as i32).y(output_image.height as i32).z(1)
+                    ])
+                    .dst_offsets([
+                        Offset3D::default(),
+                        Offset3D::default().x(output_image.width as i32).y(output_image.height as i32).z(1)
+                    ])
+                    .src_subresource(
+                        ImageSubresourceLayers::default()
+                            .aspect_mask(ImageAspectFlags::COLOR)
+                            .base_array_layer(0)
+                            .layer_count(1)
+                            .mip_level(0)
+                    )
+                    .dst_subresource(
+                        ImageSubresourceLayers::default()
+                            .aspect_mask(ImageAspectFlags::COLOR)
+                            .base_array_layer(0)
+                            .layer_count(1)
+                            .mip_level(0)
+                    )
+                ],
+                vk::Filter::NEAREST,
+            );
         }
 
         // Transfer back to default states
@@ -303,9 +299,10 @@ impl Renderer {
             vk::AccessFlags::TRANSFER_WRITE,
             vk::AccessFlags::NONE
         );
+
         self.transition_image(
             command_buffer,
-            &output_image.handle(),
+            &output_image.image,
             vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
             vk::ImageLayout::GENERAL,
             vk::PipelineStageFlags::TRANSFER,
@@ -362,9 +359,9 @@ impl Renderer {
         // Wait for the current frame's command buffer to finish executing.
         self.device.wait_for_fence(self.in_flight_fences[self.frame_index]);
 
-        let index = self.swapchain.acquire_next_image(self.image_available_semaphores[self.frame_index]) as usize;
+        let image_index = self.swapchain.acquire_next_image(self.image_available_semaphores[self.frame_index]) as usize;
 
-        self.record_command_buffer(self.frame_index, draw_orchestrator);
+        self.record_command_buffer(self.frame_index, image_index, draw_orchestrator);
 
         self.device.reset_fence(self.in_flight_fences[self.frame_index]);
         self.device.submit_command_buffer(
@@ -378,7 +375,7 @@ impl Renderer {
         self.swapchain.queue_present(
             self.queue,
             self.render_finished_semaphores[self.frame_index],
-            index as u32
+            image_index as u32
         );
 
         self.frame_index = ( self.frame_index + 1 ) % self.swapchain.get_image_views().len();

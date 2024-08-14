@@ -167,15 +167,17 @@ impl Swapchain {
     ///
     /// - `semaphore` - A semapore to wait on before issuing the present info.
     /// https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkQueuePresentKHR.html
-    pub fn queue_present(&self, queue: vk::Queue, semaphore: vk::Semaphore, index: u32) {
+    pub fn queue_present(&self, queue: vk::Queue, wait_semaphore: vk::Semaphore, image_index: u32) {
+        let mut result = [vk::Result::SUCCESS];
         unsafe {
             let swapchains = [self.handle()];
-            let indices = [index];
-            let semaphores = [semaphore];
+            let indices = [image_index];
+            let semaphores = [wait_semaphore];
             let present_info = vk::PresentInfoKHR::default()
                 .wait_semaphores(&semaphores)
                 .swapchains(&swapchains)
-                .image_indices(&indices);
+                .image_indices(&indices)
+                .results(&mut result);
             self.inner.swapchain_loader.queue_present(queue, &present_info)
                 .expect("Failed to present queue");
         }

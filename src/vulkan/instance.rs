@@ -85,7 +85,9 @@ impl Instance {
         }
 
         let validation: ValidationInfo = ValidationInfo {
-            required_validation_layers: vec![CString::new("VK_LAYER_KHRONOS_validation").unwrap()],
+            required_validation_layers: vec![
+                CString::new("VK_LAYER_KHRONOS_validation").unwrap()
+            ],
         };
 
         let c_ptr_validation_layers = validation
