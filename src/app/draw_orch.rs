@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::mem::size_of;
 use std::sync::Arc;
 use ash::vk;
@@ -98,12 +99,16 @@ impl DrawOrchestrator {
                 .size(size_of::<PushConstants>() as u32),
         ];
 
-        let workgroup_size = UVec3::new( 32, 32, 1 );
+        let workgroup_size = 32;
         let full_screen_dispatches = UVec3::new(
-            (resolution.x as f32 / workgroup_size.x as f32).ceil() as u32,
-            (resolution.y as f32 / workgroup_size.y as f32).ceil() as u32,
+            (resolution.x as f32 / workgroup_size as f32).ceil() as u32,
+            (resolution.y as f32 / workgroup_size as f32).ceil() as u32,
             1
         );
+
+        let mut macros: HashMap<&str, &dyn ToString> = HashMap::new();
+        macros.insert("NUM_IMAGES", &image_count);
+        macros.insert("WORKGROUP_SIZE", &workgroup_size);
 
         // Passes
         let passes = draw_config.passes
@@ -113,7 +118,8 @@ impl DrawOrchestrator {
                     &renderer.device,
                     c.shader.to_string(),
                     &[&compute_descriptor_set_layout],
-                    push_constant_ranges
+                    push_constant_ranges,
+                    &macros
                 );
                 let dispatches = match c.dispatches {
                     DispatchConfig::Count(x, y, z) => {

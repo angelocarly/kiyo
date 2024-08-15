@@ -11,7 +11,6 @@ pub struct Window {
     window: winit::window::Window,
 }
 
-
 impl Window {
     pub fn create(event_loop: &EventLoop<()>, window_title: &str, width: u32, height: u32) -> Window {
         let window = winit::window::WindowBuilder::new()

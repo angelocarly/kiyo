@@ -1,9 +1,10 @@
+use std::collections::HashMap;
 use std::ffi::CString;
 use std::sync::Arc;
 use ash::vk;
 use crate::vulkan::{DescriptorSetLayout, Device, Pipeline, RenderPass};
 use crate::vulkan::device::DeviceInner;
-use crate::vulkan::pipeline::{create_shader_module, load_from_file};
+use crate::vulkan::pipeline::{create_shader_module, load_shader_code};
 
 pub struct GraphicsPipelineInner {
     pub pipeline_layout: vk::PipelineLayout,
@@ -40,10 +41,10 @@ impl Pipeline for GraphicsPipeline {
 
 impl GraphicsPipeline {
 
-    pub fn new(device: &Device, render_pass: &RenderPass, vertex_shader_source: String, fragment_shader_source: String, layouts: &[&DescriptorSetLayout]) -> Self {
+    pub fn new(device: &Device, render_pass: &RenderPass, vertex_shader_source: String, fragment_shader_source: String, layouts: &[&DescriptorSetLayout], macros: HashMap<&str, &dyn ToString>) -> Self {
 
-        let vertex_shader_code = load_from_file(vertex_shader_source);
-        let fragment_shader_code = load_from_file(fragment_shader_source);
+        let vertex_shader_code = load_shader_code(vertex_shader_source, &macros);
+        let fragment_shader_code = load_shader_code(fragment_shader_source, &macros);
 
         // Shaders
         let vertex_shader_module = create_shader_module(device.handle(), vertex_shader_code.to_vec());
