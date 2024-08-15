@@ -27,6 +27,7 @@ void main()
         return;
     }
 
+    // Blur
     vec4 c = vec4( 0.0f );
     int range = 2;
     for( int x = -range; x <= range; x++ )
