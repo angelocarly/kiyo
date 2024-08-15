@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fs;
 use ash::vk;
 use ash::vk::ShaderModule;
+use log::{error, info};
 
 pub trait Pipeline {
     fn handle(&self) -> vk::Pipeline;
@@ -49,7 +50,16 @@ pub fn load_shader_code(source_file: String, macros: &HashMap<&str, &dyn ToStrin
         source_file.as_str(),
         "main",
         Some(&options)
-    ).unwrap();
+    );
 
-    binary_result.as_binary().to_vec()
+    match binary_result {
+        Ok(result) => {
+            info!("Successfully compiled shader: {}", source_file);
+            result.as_binary().to_vec()
+        },
+        Err(error) => {
+            error!("Failed to compile shader: {}", error);
+            std::process::abort();
+        }
+    }
 }
