@@ -5,9 +5,15 @@
 ## What is Kiyo?
 A lightweight compute shader engine using [ash](https://github.com/ash-rs/ash).
 
-Kiyo provides a simple configuration interface to run one or more shaders, and synchronize their input/output images.
+Kiyo provides a simple configuration interface to run compute shaders.  
+Currently it supports:
+- Multiple subsequent compute passes
+- Shared storage images between them
+- GLSL compile logging
 
-You can find examples in [./examples](./examples) and in my [toy project repository](https://github.com/angelocarly/kiyo-projects).
+More features like hotswapping are planned. For any feedback you are very welcome to create issues or contact me.
+
+You can find examples in [./examples/](./examples/) and in my [toy project repository](https://github.com/angelocarly/kiyo-projects).
 
 ## Building & running
 
