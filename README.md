@@ -24,14 +24,22 @@ cd kiyo
 cargo run --example simple-render
 ```
 
+## GPU debugging
+
+### Windows & Linux
+Renderdoc!
+
 ### Mac
-In order to debug Kiyo on Mac, you need to provide the following environment variables:
+Mac only has XCode's Metal debugger. In order to use it you need to provide the following environment variables:
 ```bash
 VULKAN_SDK=$HOME/VulkanSDK/<version>/macOS
 DYLD_FALLBACK_LIBRARY_PATH=$VULKAN_SDK/lib
 VK_ICD_FILENAMES=$VULKAN_SDK/share/vulkan/icd.d/MoltenVK_icd.json
 VK_LAYER_PATH=$VULKAN_SDK/share/vulkan/explicit_layer.d
 ```
+
+Then you should be able to launch your kiyo application and capture a frame.  
+[This video](https://www.youtube.com/watch?v=uNB4RMZg1AM) does a nice job explaining the process.
 
 ## Libraries
 - [ash](https://github.com/ash-rs/ash) - Vulkan bindings
