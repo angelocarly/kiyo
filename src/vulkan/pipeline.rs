@@ -19,6 +19,9 @@ pub fn create_shader_module(device: &ash::Device, code: Vec<u32>) -> ShaderModul
     }
 }
 
+/**
+ * Load a shader from a file and compile it into SPIR-V.
+ */
 pub fn load_from_file(source_file: String) -> Vec<u32>
 {
     use shaderc;
@@ -35,6 +38,9 @@ pub fn load_from_file(source_file: String) -> Vec<u32>
     let compiler = shaderc::Compiler::new().unwrap();
     let mut options = shaderc::CompileOptions::new().unwrap();
     options.add_macro_definition("EP", Some("main"));
+    options.add_macro_definition("NUM_IMAGES", Some("2"));
+    options.add_macro_definition("WORKGROUP_SIZE", Some("32"));
+
     let binary_result = compiler.compile_into_spirv(
         source.as_str(),
         shader_kind,

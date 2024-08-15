@@ -1,9 +1,8 @@
 #version 450
 
-#define WORKGROUP_SIZE 32
 layout ( local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
 
-layout( binding = 0, rgba8 ) uniform image2D images[2];
+layout( binding = 0, rgba8 ) uniform image2D images[NUM_IMAGES];
 
 layout( push_constant ) uniform PushConstants
 {
@@ -28,7 +27,7 @@ void main()
         for( int y = -range; y <= range; y++ )
         {
             ivec2 offset = ivec2( x, y );
-            vec4 neighbor = imageLoad( images[0], p + offset );
+            vec4 neighbor = imageLoad( images[constants.in_image], p + offset );
             c += neighbor;
         }
     }

@@ -1,12 +1,11 @@
 #version 450
 
-#define WORKGROUP_SIZE 32
 layout ( local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
 
 #define hash2(p) fract(sin((p)*mat2(127.1,311.7, 269.5,183.3)) * 43758.5453123)
 #define hash3(p) fract(sin((p)*mat3(127.1,311.7, 74.7,  269.5,183.3,246.1,  113.5,271.9,124.6))*43758.5453123)
 
-layout( binding = 0, rgba8 ) uniform image2D images[2];
+layout( binding = 0, rgba8 ) uniform image2D images[NUM_IMAGES];
 
 layout( push_constant ) uniform PushConstants
 {
