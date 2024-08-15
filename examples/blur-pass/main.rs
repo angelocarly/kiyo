@@ -13,11 +13,17 @@ fn main() {
     let mut config = DrawConfig::new();
     config.passes = Vec::from([
         Pass {
-            shader: "examples/simple-render/shaders/colors.comp".to_string(),
+            shader: "examples/blur-pass/shaders/screen_shader.comp".to_string(),
             dispatches: DispatchConfig::FullScreen,
             input_resources: Vec::from([]),
             output_resources: Vec::from([ 0 ]),
         },
+        Pass {
+            shader: "examples/blur-pass/shaders/blur.comp".to_string(),
+            dispatches: DispatchConfig::FullScreen,
+            input_resources: Vec::from([ 0 ]),
+            output_resources: Vec::from([ 1 ]),
+        }
     ]);
 
     app.run(config);

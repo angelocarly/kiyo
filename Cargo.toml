@@ -27,3 +27,6 @@ bytemuck = "1.16.1"
 
 [[example]]
 name = "simple-render"
+
+[[example]]
+name = "blur-pass"

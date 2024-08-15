@@ -1,15 +1,22 @@
 #version 450
 
+/*
+ * Kiyo data
+ * - WORKGROUP_SIZE and NUM_IMAGES are provided by the engine
+ */
+
 layout ( local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
-
 layout( binding = 0, rgba8 ) uniform image2D images[NUM_IMAGES];
-
 layout( push_constant ) uniform PushConstants
 {
     float time;
     int in_image;
     int out_image;
 } constants;
+
+/*
+ * User data
+ */
 
 void main()
 {
