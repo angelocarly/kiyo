@@ -1,3 +1,4 @@
+use crate::vulkan::PipelineErr;
 use std::collections::HashMap;
 use std::mem::size_of;
 use std::sync::Arc;
@@ -51,7 +52,7 @@ pub struct DrawOrchestrator {
 }
 
 impl DrawOrchestrator {
-    pub fn new(renderer: &mut Renderer, resolution: UVec2, draw_config: DrawConfig) -> DrawOrchestrator {
+    pub fn new(renderer: &mut Renderer, resolution: UVec2, draw_config: &DrawConfig) -> Result<DrawOrchestrator, PipelineErr> {
 
         let image_count = draw_config.passes.iter()
             .map(|p| p.output_resources.iter())
@@ -120,7 +121,8 @@ impl DrawOrchestrator {
                     &[&compute_descriptor_set_layout],
                     push_constant_ranges,
                     &macros
-                );
+                )?;
+
                 let dispatches = match c.dispatches {
                     DispatchConfig::Count(x, y, z) => {
                         UVec3::new(x, y, z)
@@ -129,19 +131,20 @@ impl DrawOrchestrator {
                         full_screen_dispatches
                     }
                 };
-                ShaderPass {
+
+                Ok(ShaderPass {
                     compute_pipeline,
                     dispatches: dispatches,
                     in_images: c.input_resources.clone(),
                     out_images: c.output_resources.clone(),
-                }
+                })
             })
-            .collect();
+            .collect::<Result<Vec<ShaderPass>, PipelineErr>>()?;
 
-        DrawOrchestrator {
+        Ok(DrawOrchestrator {
             compute_descriptor_set_layout,
             images,
             passes
-        }
+        })
     }
 }

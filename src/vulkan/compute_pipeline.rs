@@ -5,7 +5,7 @@ use ash::vk;
 use ash::vk::PushConstantRange;
 use crate::vulkan::{DescriptorSetLayout, Device, Pipeline};
 use crate::vulkan::device::DeviceInner;
-use crate::vulkan::pipeline::{create_shader_module, load_shader_code};
+use crate::vulkan::pipeline::{create_shader_module, load_shader_code, PipelineErr};
 
 pub struct ComputePipelineInner {
     pub pipeline_layout: vk::PipelineLayout,
@@ -48,9 +48,9 @@ pub fn new(
     layouts: &[&DescriptorSetLayout],
     push_constant_ranges: &[PushConstantRange],
     macros: &HashMap<&str, &dyn ToString>
-) -> Self {
+) -> Result<Self, PipelineErr> {
 
-        let shader_code = load_shader_code(shader_source, macros);
+        let shader_code = load_shader_code(shader_source, macros)?;
         let shader_module = create_shader_module(device.handle(), shader_code.to_vec());
 
         let binding = CString::new("main").unwrap();
@@ -92,8 +92,8 @@ pub fn new(
             device_dep: device.inner.clone()
         };
 
-        Self {
+        Ok(Self {
             inner: Arc::new(pipeline_inner)
-        }
+        })
     }
 }

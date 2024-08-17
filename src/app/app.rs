@@ -1,7 +1,12 @@
+use notify::event::AccessKind::Close;
+use notify::EventKind::Access;
+use std::path::Path;
 use std::time::SystemTime;
 use env_logger::{Builder, Env};
 use glam::UVec2;
-use log::{info, LevelFilter};
+use log::{error, info, LevelFilter};
+use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::event::AccessMode::Write;
 use winit::event::{Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
@@ -56,6 +61,7 @@ impl App {
             .format_timestamp_millis()
             .filter(Some("winit"), LevelFilter::Error)
             .filter(Some("calloop"), LevelFilter::Error)
+            .filter(Some("notify::inotify"), LevelFilter::Error)
             .init();
     }
 
@@ -82,7 +88,24 @@ impl App {
     pub fn run(mut self, draw_config: DrawConfig) {
 
         let resolution = UVec2::new( self.window.get_extent().width, self.window.get_extent().height );
-        let mut orchestrator = DrawOrchestrator::new(&mut self.renderer, resolution, draw_config);
+        let mut orchestrator = match DrawOrchestrator::new(&mut self.renderer, resolution, &draw_config) {
+            Ok(d) => {
+                d
+            },
+            Err(e) => {
+                error!("{}", e);
+                log::info!("A shader contains an error, quitting");
+                std::process::abort();
+            }
+        };
+
+        let paths = &draw_config.passes.iter().map(|p| { p.shader.clone() }).collect::<Vec<String>>();
+
+        let (tx, rx) = std::sync::mpsc::channel();
+        let mut watcher = RecommendedWatcher::new(tx, Config::default()).unwrap();
+        for path in paths {
+            watcher.watch(Path::new(path), RecursiveMode::Recursive).unwrap();
+        };
 
         let mut last_print_time = SystemTime::now();
         let mut frame_count = 0;
@@ -91,6 +114,31 @@ impl App {
             .run_on_demand( |event, elwt| {
                 elwt.set_control_flow(ControlFlow::Poll);
 
+                // File watching and reloading application
+                if let Ok(event) = &rx.try_recv() {
+                    if let Ok(e) = event {
+                        match e.kind {
+                            Access(Close(Write)) => {
+                                log::info!("File write event: {:?}", e.paths);
+
+                                // Currently just reloads all shaders, it might be better to only compile the changed shader
+                                let new_orch = DrawOrchestrator::new(&mut self.renderer, resolution, &draw_config);
+                                match new_orch {
+                                    Ok(o) => {
+                                        orchestrator = o;
+                                    }
+                                    Err(e) => {
+                                        error!("{}", e);
+                                        log::info!("Shader contains error, not updating");
+                                    }
+                                }
+                            },
+                            _ => {}
+                        }
+                    }
+                }
+
+                // Window event
                 match event {
                     | Event::NewEvents(StartCause::Poll) => {
                         self.renderer.draw_frame(&mut orchestrator);

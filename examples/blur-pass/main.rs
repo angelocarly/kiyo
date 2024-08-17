@@ -7,7 +7,7 @@ fn main() {
         width: 1000,
         height: 1000,
         vsync: true,
-        log_fps: true,
+        log_fps: false,
     });
 
     let mut config = DrawConfig::new();
