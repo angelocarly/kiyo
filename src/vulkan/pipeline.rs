@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::{fmt, fs};
 use ash::vk;
 use ash::vk::ShaderModule;
-use log::{error, info};
+use log::{info};
 
 pub trait Pipeline {
     fn handle(&self) -> vk::Pipeline;
