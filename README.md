@@ -33,3 +33,4 @@ VK_LAYER_PATH=$VULKAN_SDK/share/vulkan/explicit_layer.d
 - [winit](https://github.com/rust-windowing/winit) - Window creation and handling
 - [shaderc](https://github.com/google/shaderc-rs) - Shader compilation
 - [gpu-allocator](https://github.com/Traverse-Research/gpu-allocator?tab=readme-ov-file) - Memory management
+- [notify](https://github.com/notify-rs/notify) - File watching

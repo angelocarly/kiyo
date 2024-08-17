@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fs;
+use std::{fmt, fs};
 use ash::vk;
 use ash::vk::ShaderModule;
 use log::{error, info};
@@ -21,10 +21,25 @@ pub fn create_shader_module(device: &ash::Device, code: Vec<u32>) -> ShaderModul
     }
 }
 
+#[derive(Debug)]
+pub enum PipelineErr {
+    ShaderCompilation(String)
+}
+
+impl fmt::Display for PipelineErr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            PipelineErr::ShaderCompilation(ref err) => {
+                write!(f, "{}", err)
+            },
+        }
+    }
+}
+
 /**
  * Load a shader from a file and compile it into SPIR-V.
  */
-pub fn load_shader_code(source_file: String, macros: &HashMap<&str, &dyn ToString>) -> Vec<u32>
+pub fn load_shader_code(source_file: String, macros: &HashMap<&str, &dyn ToString>) -> Result<Vec<u32>, PipelineErr>
 {
     use shaderc;
 
@@ -55,11 +70,10 @@ pub fn load_shader_code(source_file: String, macros: &HashMap<&str, &dyn ToStrin
     match binary_result {
         Ok(result) => {
             info!("Successfully compiled shader: {}", source_file);
-            result.as_binary().to_vec()
+            Ok(result.as_binary().to_vec())
         },
         Err(error) => {
-            error!("Failed to compile shader: {}", error);
-            std::process::abort();
+            Err(PipelineErr::ShaderCompilation(error.to_string()))
         }
     }
 }

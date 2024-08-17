@@ -26,4 +26,5 @@ pub use self::instance::Instance;
 pub use self::surface::Surface;
 pub use self::swapchain::Swapchain;
 pub use self::pipeline::Pipeline;
+pub use self::pipeline::PipelineErr;
 pub use self::renderpass::RenderPass;
