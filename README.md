@@ -9,8 +9,9 @@ Kiyo provides a simple configuration interface to run compute shaders. The follo
 - Multiple subsequent compute passes
 - Shared storage images between them
 - GLSL compile logging
+- Shader hot-reloading
 
-More features like shader hotswapping are planned. For any feedback you are very welcome to create issues or contact me.
+For any feedback or requests you are very welcome to create issues or contact me directly!
 
 You can find examples in [./examples/](./examples/) and in my [toy project repository](https://github.com/angelocarly/kiyo-projects).
 
