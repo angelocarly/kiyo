@@ -114,13 +114,14 @@ impl App {
             .run_on_demand( |event, elwt| {
                 elwt.set_control_flow(ControlFlow::Poll);
 
-                // File watching
+                // File watching and reloading application
                 if let Ok(event) = &rx.try_recv() {
                     if let Ok(e) = event {
                         match e.kind {
                             Access(Close(Write)) => {
                                 log::info!("File write event: {:?}", e.paths);
 
+                                // Currently just reloads all shaders, it might be better to only compile the changed shader
                                 let new_orch = DrawOrchestrator::new(&mut self.renderer, resolution, &draw_config);
                                 match new_orch {
                                     Ok(o) => {
