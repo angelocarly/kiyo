@@ -5,9 +5,14 @@
 ## What is Kiyo?
 A lightweight compute shader engine using [ash](https://github.com/ash-rs/ash).
 
-Kiyo provides a simple configuration interface to run one or more shaders, and synchronize their input/output images.
+Kiyo provides a simple configuration interface to run compute shaders. The following features are implemented:
+- Multiple subsequent compute passes
+- Shared storage images between them
+- GLSL compile logging
 
-You can find examples in [./examples](./examples) and in my [toy project repository](https://github.com/angelocarly/kiyo-projects).
+More features like shader hotswapping are planned. For any feedback you are very welcome to create issues or contact me.
+
+You can find examples in [./examples/](./examples/) and in my [toy project repository](https://github.com/angelocarly/kiyo-projects).
 
 ## Building & running
 
@@ -19,14 +24,22 @@ cd kiyo
 cargo run --example simple-render
 ```
 
+## GPU debugging
+
+### Windows & Linux
+Renderdoc!
+
 ### Mac
-In order to debug Kiyo on Mac, you need to provide the following environment variables:
+Mac only has XCode's Metal debugger. In order to use it you need to provide the following environment variables:
 ```bash
 VULKAN_SDK=$HOME/VulkanSDK/<version>/macOS
 DYLD_FALLBACK_LIBRARY_PATH=$VULKAN_SDK/lib
 VK_ICD_FILENAMES=$VULKAN_SDK/share/vulkan/icd.d/MoltenVK_icd.json
 VK_LAYER_PATH=$VULKAN_SDK/share/vulkan/explicit_layer.d
 ```
+
+Then you should be able to launch your kiyo application and capture a frame.  
+[This video](https://www.youtube.com/watch?v=uNB4RMZg1AM) does a nice job explaining the process.
 
 ## Libraries
 - [ash](https://github.com/ash-rs/ash) - Vulkan bindings
