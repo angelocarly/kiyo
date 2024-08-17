@@ -15,6 +15,11 @@ For any feedback or requests you are very welcome to create issues or contact me
 
 You can find examples in [./examples/](./examples/) and in my [toy project repository](https://github.com/angelocarly/kiyo-projects).
 
+## Shader environment variables
+These variables are passed from kiyo to the shaders.
+- `NUM_IMAGES` - The amount of accessible storage images.
+- `WORKGROUP_SIZE` - The workgroup size at which the shaders should run.
+
 ## Building & running
 
 Make sure you have the [Vulkan SDK](https://vulkan.lunarg.com) installed.  
