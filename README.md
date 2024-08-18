@@ -48,6 +48,8 @@ Then you should be able to launch your kiyo application and capture a frame.
 [This video](https://www.youtube.com/watch?v=uNB4RMZg1AM) does a nice job explaining the process.
 
 ## References
+- [myndgerapaptratptras tarstrsattarst](https://github.com/pudnax/myndgera) - Pipeline caching and reloading
+- [paya](https://github.com/paratym/paya) - Vulkan memory dependencies and ash wrappers
 - [sound-shader](https://github.com/ytanimura/sound-shader) - Cpal wrapper code and shader audio inspiration
 
 ## Libraries
