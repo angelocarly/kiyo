@@ -1,7 +1,8 @@
 use std::sync::Arc;
 use ash::vk;
 use ash::vk::DescriptorSetLayoutBinding;
-use crate::vulkan::Device;
+use log::trace;
+use crate::vulkan::{Device, LOG_TARGET};
 use crate::vulkan::device::DeviceInner;
 
 pub struct DescriptorSetLayout {
@@ -12,7 +13,9 @@ pub struct DescriptorSetLayout {
 impl Drop for DescriptorSetLayout {
     fn drop(&mut self) {
         unsafe {
+            let layout_addr = format!("{:?}", self.layout);
             self.device_dep.device.destroy_descriptor_set_layout(self.layout, None);
+            trace!(target: LOG_TARGET, "Destroyed descriptor set layout: [{}]", layout_addr);
         }
     }
 }
@@ -30,6 +33,8 @@ impl DescriptorSetLayout {
                 .create_descriptor_set_layout(&layout_create_info, None)
                 .expect("Failed to create descriptor set layout")
         };
+
+        trace!(target: LOG_TARGET, "Created descriptor set layout: {:?}", layout);
 
         DescriptorSetLayout {
             device_dep: device.inner.clone(),

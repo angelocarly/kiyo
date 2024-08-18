@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use ash::{vk};
-use crate::vulkan::{Device};
+use log::trace;
+use crate::vulkan::{Device, LOG_TARGET};
 use crate::vulkan::device::DeviceInner;
 
 pub struct RenderPassInner {
@@ -11,7 +12,9 @@ pub struct RenderPassInner {
 impl Drop for RenderPassInner {
     fn drop(&mut self) {
         unsafe {
+            let renderpass_addr = format!("{:?}", self.renderpass);
             self.device_dep.device.destroy_render_pass(self.renderpass, None);
+            log::trace!(target: LOG_TARGET, "Destroyed render pass: [{}]", renderpass_addr);
         }
     }
 }
@@ -53,6 +56,8 @@ impl RenderPass {
                 .create_render_pass(&renderpass_create_info, None)
                 .expect("Failed to create render pass")
         };
+
+        trace!(target: LOG_TARGET, "Created render pass: {:?}", renderpass);
 
         let renderpass_inner = RenderPassInner {
             renderpass,

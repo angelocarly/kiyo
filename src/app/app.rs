@@ -58,11 +58,12 @@ impl App {
 
         Builder::from_env(env)
             .format_level(true)
-            // Millisecond formatting
             .format_timestamp_millis()
             .filter(Some("winit"), LevelFilter::Error)
             .filter(Some("calloop"), LevelFilter::Error)
             .filter(Some("notify::inotify"), LevelFilter::Error)
+            .filter(Some("mio::poll"), LevelFilter::Error)
+            .filter(Some("sctk"), LevelFilter::Error)
             .init();
     }
 
