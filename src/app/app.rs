@@ -7,6 +7,7 @@ use glam::UVec2;
 use log::{error, info, LevelFilter};
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use notify::event::AccessMode::Write;
+use slotmap::{DefaultKey, SlotMap};
 use winit::event::{Event, StartCause, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
@@ -14,7 +15,7 @@ use crate::app::draw_orch::DrawConfig;
 use crate::app::{DrawOrchestrator, Renderer, Window};
 
 // Maybe delete all the following blocks
-use crate::vulkan::{Device, RenderPass, Framebuffer, CommandBuffer};
+use crate::vulkan::{Device, RenderPass, Framebuffer, CommandBuffer, ComputePipeline};
 
 pub struct RenderContext<'a> {
     pub device: &'a Device,
@@ -89,13 +90,14 @@ impl App {
     pub fn run(mut self, draw_config: DrawConfig) {
 
         let resolution = UVec2::new( self.window.get_extent().width, self.window.get_extent().height );
+
         let mut orchestrator = match DrawOrchestrator::new(&mut self.renderer, resolution, &draw_config) {
             Ok(d) => {
                 d
             },
             Err(e) => {
                 error!("{}", e);
-                log::info!("A shader contains an error, quitting");
+                info!("A shader contains an error, quitting");
                 std::process::abort();
             }
         };

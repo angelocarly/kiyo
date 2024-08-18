@@ -4,6 +4,7 @@ use std::mem::size_of;
 use std::sync::Arc;
 use ash::vk;
 use glam::{UVec2, UVec3};
+use slotmap::{DefaultKey, SlotMap};
 use crate::app::{Renderer};
 use crate::app::renderer::PushConstants;
 use crate::vulkan::{CommandBuffer, ComputePipeline, DescriptorSetLayout, Image};
@@ -39,16 +40,20 @@ impl DrawConfig {
 }
 
 pub struct ShaderPass {
-    pub compute_pipeline: ComputePipeline,
     pub dispatches: glam::UVec3,
     pub in_images: Vec<u32>,
     pub out_images: Vec<u32>,
+    pub compute_handle: DefaultKey,
 }
 
+/**
+ *  Contains all render related structures relating to a config.
+ */
 pub struct DrawOrchestrator {
     pub compute_descriptor_set_layout: DescriptorSetLayout,
     pub images: Vec<Image>,
     pub passes: Vec<ShaderPass>,
+    pub pipelines: SlotMap<DefaultKey, ComputePipeline>,
 }
 
 impl DrawOrchestrator {
@@ -111,6 +116,9 @@ impl DrawOrchestrator {
         macros.insert("NUM_IMAGES", &image_count);
         macros.insert("WORKGROUP_SIZE", &workgroup_size);
 
+        // Load pipelines in map
+        let mut pipelines = SlotMap::new();
+
         // Passes
         let passes = draw_config.passes
             .iter()
@@ -132,8 +140,10 @@ impl DrawOrchestrator {
                     }
                 };
 
+                let compute_handle = pipelines.insert(compute_pipeline);
+
                 Ok(ShaderPass {
-                    compute_pipeline,
+                    compute_handle,
                     dispatches: dispatches,
                     in_images: c.input_resources.clone(),
                     out_images: c.output_resources.clone(),
@@ -142,6 +152,7 @@ impl DrawOrchestrator {
             .collect::<Result<Vec<ShaderPass>, PipelineErr>>()?;
 
         Ok(DrawOrchestrator {
+            pipelines,
             compute_descriptor_set_layout,
             images,
             passes

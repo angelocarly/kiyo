@@ -193,15 +193,17 @@ impl Renderer {
         // Compute images
         let current_time = self.start_time.elapsed().as_secs_f32();
         for p in &draw_orchestrator.passes {
-            command_buffer.bind_pipeline(&p.compute_pipeline);
-            let push_constants = PushConstants {
-                time: current_time,
-                in_image: p.in_images.first().map(|&x| x as i32).unwrap_or(-1),
-                out_image: p.out_images.first().map(|&x| x as i32).unwrap_or(-1),
-            };
-            command_buffer.push_constants(&p.compute_pipeline, vk::ShaderStageFlags::COMPUTE, 0, &bytemuck::cast_slice(std::slice::from_ref(&push_constants)));
-            command_buffer.bind_push_descriptor_images(&p.compute_pipeline, &draw_orchestrator.images);
-            command_buffer.dispatch(p.dispatches.x, p.dispatches.y, p.dispatches.z);
+            if let Some(pipeline) = draw_orchestrator.pipelines.get(p.compute_handle) {
+                command_buffer.bind_pipeline(pipeline);
+                let push_constants = PushConstants {
+                    time: current_time,
+                    in_image: p.in_images.first().map(|&x| x as i32).unwrap_or(-1),
+                    out_image: p.out_images.first().map(|&x| x as i32).unwrap_or(-1),
+                };
+                command_buffer.push_constants(pipeline, vk::ShaderStageFlags::COMPUTE, 0, &bytemuck::cast_slice(std::slice::from_ref(&push_constants)));
+                command_buffer.bind_push_descriptor_images(pipeline, &draw_orchestrator.images);
+                command_buffer.dispatch(p.dispatches.x, p.dispatches.y, p.dispatches.z);
+            }
 
             // TODO: Add synchronization between passes
         };
