@@ -1,7 +1,8 @@
 use std::sync::Arc;
 use ash::vk;
 use ash::vk::Extent2D;
-use crate::vulkan::{Device, RenderPass};
+use log::trace;
+use crate::vulkan::{Device, RenderPass, LOG_TARGET};
 use crate::vulkan::device::DeviceInner;
 
 pub struct FramebufferInner {
@@ -13,7 +14,9 @@ pub struct FramebufferInner {
 impl Drop for FramebufferInner {
     fn drop(&mut self) {
         unsafe {
+            let framebuffer_addr = format!("{:?}", self.framebuffer);
             self.device_dep.device.destroy_framebuffer(self.framebuffer, None);
+            trace!(target: LOG_TARGET, "Destroyed framebuffer: [{}]", framebuffer_addr);
         }
     }
 }
@@ -37,6 +40,8 @@ impl Framebuffer {
                 .create_framebuffer(&framebuffer_create_info, None)
                 .expect("Failed to create framebuffer")
         };
+
+        trace!(target: LOG_TARGET, "Created framebuffer: {:?}", framebuffer);
 
         let framebuffer_inner = FramebufferInner {
             device_dep: device.inner.clone(),

@@ -8,6 +8,7 @@ use std::sync::Arc;
 use ash::khr::surface;
 use log::{debug, error, info, warn};
 use winit::raw_window_handle::RawDisplayHandle;
+use crate::vulkan::LOG_TARGET;
 use crate::vulkan::surface::Surface;
 
 struct ValidationInfo {
@@ -28,10 +29,10 @@ unsafe extern "system" fn vulkan_debug_utils_callback(
     };
     let message = CStr::from_ptr((*p_callback_data).p_message).to_str().unwrap();
     match message_severity {
-        vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => debug!("{} {}", types, message),
-        vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => println!("{} {}", types, message),
-        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => error!("{} {}", types, message),
-        vk::DebugUtilsMessageSeverityFlagsEXT::INFO => info!("{} {}", types, message),
+        vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => debug!(target: LOG_TARGET, "{} {}", types, message),
+        vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => warn!(target: LOG_TARGET, "{} {}", types, message),
+        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => error!(target: LOG_TARGET, "{} {}", types, message),
+        vk::DebugUtilsMessageSeverityFlagsEXT::INFO => info!(target: LOG_TARGET, "{} {}", types, message),
         _ => warn!("{} {}", types, message),
     };
 

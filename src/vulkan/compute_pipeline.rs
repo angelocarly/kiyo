@@ -3,7 +3,8 @@ use std::ffi::CString;
 use std::sync::Arc;
 use ash::vk;
 use ash::vk::PushConstantRange;
-use crate::vulkan::{DescriptorSetLayout, Device, Pipeline};
+use log::{trace};
+use crate::vulkan::{DescriptorSetLayout, Device, Pipeline, LOG_TARGET};
 use crate::vulkan::device::DeviceInner;
 use crate::vulkan::pipeline::{create_shader_module, load_shader_code, PipelineErr};
 
@@ -16,8 +17,10 @@ pub struct ComputePipelineInner {
 impl Drop for ComputePipelineInner {
     fn drop(&mut self) {
         unsafe {
+            let compute_pipeline_addr = format!("{:?}", self.compute_pipeline);
             self.device_dep.device.destroy_pipeline(self.compute_pipeline, None);
             self.device_dep.device.destroy_pipeline_layout(self.pipeline_layout, None);
+            trace!(target: LOG_TARGET, "Destroyed compute pipeline: [{}]", compute_pipeline_addr);
         }
     }
 }
@@ -83,6 +86,8 @@ pub fn new(
                 .create_compute_pipelines(vk::PipelineCache::null(), &[compute_pipeline_create_info], None)
                 .expect("Failed to create graphics pipeline")[0]
         };
+
+        trace!(target: LOG_TARGET, "Created compute pipeline: [{:?}]", compute_pipeline);
 
         unsafe { device.handle().destroy_shader_module(shader_module, None); }
 

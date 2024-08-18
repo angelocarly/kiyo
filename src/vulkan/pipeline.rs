@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::{fmt, fs};
 use ash::vk;
 use ash::vk::ShaderModule;
-use log::{info};
+use log::{trace};
+use crate::vulkan::LOG_TARGET;
 
 pub trait Pipeline {
     fn handle(&self) -> vk::Pipeline;
@@ -69,7 +70,7 @@ pub fn load_shader_code(source_file: String, macros: &HashMap<&str, &dyn ToStrin
 
     match binary_result {
         Ok(result) => {
-            info!("Successfully compiled shader: {}", source_file);
+            trace!(target: LOG_TARGET, "Compiled shader code: {}", source_file);
             Ok(result.as_binary().to_vec())
         },
         Err(error) => {

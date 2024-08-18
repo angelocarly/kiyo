@@ -3,7 +3,8 @@ use ash::vk;
 use ash::vk::{ComponentMapping, ImageAspectFlags};
 use gpu_allocator::MemoryLocation;
 use gpu_allocator::vulkan::{Allocation, AllocationScheme};
-use crate::vulkan::{Allocator, Device};
+use log::trace;
+use crate::vulkan::{Allocator, Device, LOG_TARGET};
 use crate::vulkan::allocator::AllocatorInner;
 use crate::vulkan::device::DeviceInner;
 
@@ -21,12 +22,14 @@ pub struct Image {
 impl Drop for Image {
     fn drop(&mut self) {
         unsafe {
+            let image_addr = format!("{:?}", self.image);
             self.device_dep.device.destroy_sampler(self.sampler, None);
             self.device_dep.device.destroy_image_view(self.image_view, None);
             if let Some(allocation) = self.allocation.take() {
                 self.allocator_dep.lock().unwrap().allocator.free(allocation).unwrap();
             }
             self.device_dep.device.destroy_image(self.image, None);
+            trace!(target: LOG_TARGET, "Destroyed image: [{}]", image_addr)
         }
     }
 }
@@ -54,6 +57,8 @@ impl Image {
             device.handle().create_image(&create_info, None)
                 .expect("Failed to create image")
         };
+
+        trace!(target: LOG_TARGET, "Created image: [{:?}]", image);
 
         // Allocate memory
         let requirements = unsafe { device.handle().get_image_memory_requirements(image) };

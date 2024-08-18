@@ -2,7 +2,8 @@ use std::sync::Arc;
 use ash::khr::swapchain;
 use ash::vk;
 use ash::vk::{PipelineStageFlags, Queue};
-use crate::vulkan::{CommandBuffer, Instance};
+use log::trace;
+use crate::vulkan::{CommandBuffer, Instance, LOG_TARGET};
 
 /// A connection to a physical GPU.
 pub struct DeviceInner {
@@ -14,8 +15,10 @@ pub struct DeviceInner {
 impl Drop for DeviceInner {
     fn drop(&mut self) {
         unsafe {
+            let device_addr = format!("{:?}", self.device.handle());
             self.device.device_wait_idle().unwrap();
             self.device.destroy_device(None);
+            trace!(target: LOG_TARGET, "Destroyed device: [{}]", device_addr);
         }
     }
 }
@@ -55,6 +58,8 @@ impl Device {
             instance.handle()
                 .create_device(physical_device, &device_create_info, None)
         }.unwrap();
+
+        trace!(target: LOG_TARGET, "Created device: {:?}", device.handle());
 
         let device_push_descriptor = ash::khr::push_descriptor::Device::new(instance.handle(), &device);
 

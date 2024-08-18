@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use ash::vk;
-use crate::vulkan::Device;
+use log::trace;
+use crate::vulkan::{Device, LOG_TARGET};
 use crate::vulkan::device::DeviceInner;
 
 pub struct CommandPool {
@@ -22,6 +23,8 @@ impl CommandPool {
                 .expect("Failed to create command pool")
         };
 
+        trace!(target: LOG_TARGET, "Created command pool: {:?}", command_pool);
+
         Self {
             device_dep: device.inner.clone(),
             command_pool
@@ -37,7 +40,9 @@ impl CommandPool {
 impl Drop for CommandPool {
     fn drop(&mut self) {
         unsafe {
+            let command_pool_addr = format!("{:?}", self.command_pool);
             self.device_dep.device.destroy_command_pool(self.command_pool, None);
+            trace!(target: LOG_TARGET, "Destroyed command pool: [{}]", command_pool_addr);
         }
     }
 }
