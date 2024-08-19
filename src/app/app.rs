@@ -1,5 +1,5 @@
 use notify::event::AccessKind::Close;
-use notify::EventKind::Access;
+use notify::EventKind::{Access, Modify};
 use std::path::Path;
 use std::time::SystemTime;
 use env_logger::{Builder, Env};
@@ -118,7 +118,7 @@ impl App {
                 if let Ok(event) = &rx.try_recv() {
                     if let Ok(e) = event {
                         match e.kind {
-                            Access(Close(Write)) => {
+                            Access(Close(Write)) | Modify(_) => {
                                 log::info!("File write event: {:?}", e.paths);
 
                                 // Currently just reloads all shaders, it might be better to only compile the changed shader
