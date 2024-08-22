@@ -7,16 +7,15 @@ use glam::UVec2;
 use log::{error, info, LevelFilter};
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use notify::event::AccessMode::Write;
-use slotmap::{DefaultKey, SlotMap};
 use winit::event::{Event, StartCause, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop};
+use winit::event_loop::{ControlFlow, EventLoop, EventLoopBuilder};
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
 use cpal::traits::StreamTrait;
-use crate::app::draw_orch::DrawConfig;
-use crate::app::{DrawOrchestrator, Renderer, Window, StreamFactory};
+use crate::app::{DrawOrchestrator, Window};
+use crate::graphics::Renderer;
 
 // Maybe delete all the following blocks
-use crate::vulkan::{Device, RenderPass, Framebuffer, CommandBuffer, ComputePipeline};
+use crate::vulkan::{Device, RenderPass, Framebuffer, CommandBuffer};
 
 pub struct RenderContext<'a> {
     pub device: &'a Device,
@@ -39,7 +38,7 @@ pub struct App {
     _start_time: SystemTime,
     renderer: Renderer,
     window: Window,
-    event_loop: EventLoop<()>,
+    event_loop: EventLoop<UserEvent>,
     pub app_config: AppConfig,
 }
 
@@ -48,6 +47,10 @@ pub struct AppConfig {
     pub height: u32,
     pub vsync: bool,
     pub log_fps: bool,
+}
+
+pub enum UserEvent {
+    Test
 }
 
 impl App {
@@ -75,9 +78,9 @@ impl App {
         // App setup
         let start_time = SystemTime::now();
 
-        let event_loop = EventLoop::new().expect("Failed to create event loop.");
+        let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build().expect("Failed to create event loop.");
         let window = Window::create(&event_loop, "kiyo engine", app_config.width, app_config.height);
-        let renderer = Renderer::new(&window, app_config.vsync);
+        let renderer = Renderer::new(&window, event_loop.create_proxy(), app_config.vsync);
 
         App {
             event_loop,
@@ -116,20 +119,20 @@ impl App {
         if let Some(audio_func) = audio_func {
 
             let sf = StreamFactory::default_factory().unwrap();
-    
+
             let sample_rate = sf.config().sample_rate.0;
             let mut sample_clock = 0;
             let routin = move |len: usize| -> Vec<f32> {
                 (0..len / 2) // len is apparently left *and* right
                     .flat_map(|_| {
                         sample_clock = (sample_clock + 1) % sample_rate;
-    
+
                         let (l, r) = audio_func(sample_clock as f32 / sample_rate as f32);
                         vec![l, r]
                     })
                     .collect()
             };
-            
+
             let stream = sf.create_stream(routin).unwrap();
             StreamTrait::play(&stream).unwrap();
         }
