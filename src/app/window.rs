@@ -4,6 +4,7 @@ use winit::event::{ElementState, KeyEvent};
 use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::keyboard::{Key, NamedKey};
 use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawDisplayHandle, RawWindowHandle};
+use crate::app::app::UserEvent;
 
 /// System window wrapper.
 /// Handles window events i.e. close, redraw, keyboard input.
@@ -12,7 +13,7 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn create(event_loop: &EventLoop<()>, window_title: &str, width: u32, height: u32) -> Window {
+    pub fn create(event_loop: &EventLoop<UserEvent>, window_title: &str, width: u32, height: u32) -> Window {
         let window = winit::window::WindowBuilder::new()
             .with_title(window_title)
             .with_resizable(false)
@@ -39,7 +40,7 @@ impl Window {
         Extent2D{ width, height }
     }
 
-    pub fn window_event(&mut self, event: WindowEvent, elwt: &EventLoopWindowTarget<()>) {
+    pub fn window_event(&mut self, event: WindowEvent, elwt: &EventLoopWindowTarget<UserEvent>) {
         match event {
             WindowEvent::CloseRequested => {
                 elwt.exit();

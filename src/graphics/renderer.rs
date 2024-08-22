@@ -4,10 +4,14 @@ use ash::vk;
 use ash::vk::{FenceCreateFlags, ImageAspectFlags, ImageSubresourceLayers, Offset3D, PhysicalDevice, Queue};
 use bytemuck::{Pod, Zeroable};
 use gpu_allocator::vulkan::{AllocatorCreateDesc};
+use winit::event_loop::EventLoopProxy;
 use crate::app::{DrawOrchestrator, Window};
+use crate::app::app::UserEvent;
+use crate::graphics::pipeline_store::PipelineStore;
 use crate::vulkan::{Allocator, CommandBuffer, CommandPool, Device, Instance, Surface, Swapchain};
 
 pub struct Renderer {
+    pub(crate) _pipeline_store: PipelineStore,
     pub render_finished_semaphores: Vec<vk::Semaphore>,
     pub image_available_semaphores: Vec<vk::Semaphore>,
     pub command_buffers: Vec<CommandBuffer>,
@@ -22,6 +26,7 @@ pub struct Renderer {
     pub device: Device,
     pub physical_device: PhysicalDevice,
     pub instance: Instance,
+    pub proxy: EventLoopProxy<UserEvent>,
     pub start_time: Instant,
 }
 
@@ -34,7 +39,7 @@ pub struct PushConstants {
 }
 
 impl Renderer {
-    pub fn new(window: &Window, vsync: bool) -> Renderer {
+    pub fn new(window: &Window, proxy: EventLoopProxy<UserEvent>, vsync: bool) -> Renderer {
         let entry = ash::Entry::linked();
         let instance = Instance::new(&entry, window.display_handle());
         let surface = Surface::new(&entry, &instance, &window);
@@ -85,6 +90,8 @@ impl Renderer {
             }
         }).collect::<Vec<vk::Fence>>();
 
+        let pipeline_store = PipelineStore::new();
+
         let start_time = std::time::Instant::now();
 
         Self {
@@ -101,8 +108,10 @@ impl Renderer {
             in_flight_fences,
             command_pool,
             command_buffers,
+            _pipeline_store: pipeline_store,
             frame_index: 0,
             start_time,
+            proxy
         }
     }
 

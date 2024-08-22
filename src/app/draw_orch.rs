@@ -5,8 +5,8 @@ use std::sync::Arc;
 use ash::vk;
 use glam::{UVec2, UVec3};
 use slotmap::{DefaultKey, SlotMap};
-use crate::app::{Renderer};
-use crate::app::renderer::PushConstants;
+use crate::graphics::Renderer;
+use crate::graphics::renderer::PushConstants;
 use crate::vulkan::{CommandBuffer, ComputePipeline, DescriptorSetLayout, Image};
 
 #[derive(Clone)]
