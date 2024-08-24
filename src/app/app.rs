@@ -14,26 +14,6 @@ use cpal::traits::StreamTrait;
 use crate::app::{DrawOrchestrator, Window};
 use crate::graphics::Renderer;
 
-// Maybe delete all the following blocks
-use crate::vulkan::{Device, RenderPass, Framebuffer, CommandBuffer};
-
-pub struct RenderContext<'a> {
-    pub device: &'a Device,
-    pub(crate) render_pass: &'a RenderPass,
-    pub(crate) framebuffer: &'a Framebuffer,
-    pub command_buffer: &'a CommandBuffer,
-}
-
-impl RenderContext<'_> {
-    pub fn begin_root_render_pass(&self) {
-        self.command_buffer.begin_render_pass(
-            &self.render_pass,
-            &self.framebuffer
-        );
-    }
-}
-// Stop delete
-
 pub struct App {
     _start_time: SystemTime,
     renderer: Renderer,
