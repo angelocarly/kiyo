@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 use env_logger::{Builder, Env};
 use glam::UVec2;
@@ -30,7 +30,7 @@ pub struct AppConfig {
 
 #[derive(Debug)]
 pub enum UserEvent {
-    ReloadShaders,
+    GlslUpdate(PathBuf),
 }
 
 impl App {
@@ -48,6 +48,7 @@ impl App {
             .filter(Some("notify::inotify"), LevelFilter::Error)
             .filter(Some("mio::poll"), LevelFilter::Error)
             .filter(Some("sctk"), LevelFilter::Error)
+            .filter(Some("notify_debouncer_mini"), LevelFilter::Error)
             .init();
     }
 
@@ -74,13 +75,13 @@ impl App {
     fn watch_callback(event_loop_proxy: EventLoopProxy<UserEvent>) -> impl FnMut(DebounceEventResult) {
         move |event| match event {
             Ok(events) => {
-                if let Some(_) = events
+                if let Some(e) = events
                     .iter()
                     .filter(|e| e.kind == Any)
                     .next()
                 {
                     event_loop_proxy.send_event(
-                        UserEvent::ReloadShaders
+                        UserEvent::GlslUpdate(e.path.clone())
                     ).expect("Failed to send event")
                 }
             }
@@ -151,8 +152,9 @@ impl App {
                             _ => (),
                         }
                     }
-                    | Event::UserEvent( UserEvent::ReloadShaders ) => {
-                        debug!("Reloading shaders");
+                    | Event::UserEvent( UserEvent::GlslUpdate(path) ) => {
+                        debug!("Reloading shader: {:?}", path);
+
                         // Currently just reloads all shaders, it might be better to only recompile the changed shader
                         let new_orch = DrawOrchestrator::new(&mut self.renderer, resolution, &draw_config);
                         match new_orch {
