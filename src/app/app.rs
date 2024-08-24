@@ -92,8 +92,19 @@ impl App {
 
     pub fn run(mut self, draw_config: DrawConfig, audio_func: Option<fn(f32)->(f32, f32)>) {
 
-        let resolution = UVec2::new( self.window.get_extent().width, self.window.get_extent().height );
+        // Register file watching for the shaders
+        let mut watcher = notify_debouncer_mini::new_debouncer(
+            Duration::from_millis(250),
+            Self::watch_callback(self.event_loop.create_proxy())
+        ).expect("Failed to create file watcher");
 
+        let paths = &draw_config.passes.iter().map(|p| { p.shader.clone() }).collect::<Vec<String>>();
+        for path in paths {
+            watcher.watcher().watch(Path::new(path), RecursiveMode::Recursive).unwrap();
+        }
+
+        // Parse orchestrator
+        let resolution = UVec2::new( self.window.get_extent().width, self.window.get_extent().height );
         let mut orchestrator = match DrawOrchestrator::new(&mut self.renderer, resolution, &draw_config) {
             Ok(d) => {
                 d
@@ -104,16 +115,6 @@ impl App {
                 std::process::abort();
             }
         };
-
-        let mut watcher = notify_debouncer_mini::new_debouncer(
-            Duration::from_millis(250),
-            Self::watch_callback(self.event_loop.create_proxy())
-        ).expect("Failed to create file watcher");
-
-        let paths = &draw_config.passes.iter().map(|p| { p.shader.clone() }).collect::<Vec<String>>();
-        for path in paths {
-            watcher.watcher().watch(Path::new(path), RecursiveMode::Recursive).unwrap();
-        }
 
         // audio
 
@@ -142,7 +143,6 @@ impl App {
 
         let mut last_print_time = SystemTime::now();
         let mut frame_count = 0;
-
         self.event_loop
             .run_on_demand( |event, elwt| {
                 elwt.set_control_flow(ControlFlow::Poll);
