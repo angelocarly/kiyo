@@ -22,6 +22,7 @@ gpu-allocator = { version = "0.27.0" }
 glam = "0.28.0"
 bytemuck = { version = "1.17.0", features = ["derive"] }
 notify = { version = "6.1.1" }
+notify-debouncer-mini = "0.4.1"
 slotmap = "1.0.7"
 
 [dev-dependencies]
