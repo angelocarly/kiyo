@@ -13,7 +13,7 @@ Kiyo provides a simple configuration interface to run compute shaders. The follo
 
 For any feedback or requests you are very welcome to create issues or contact me directly!
 
-You can find examples in [./examples/](./examples/) and in my [toy project repository](https://github.com/angelocarly/kiyo-projects).
+You can find examples in [./examples/](examples/) and in my [toy project repository](https://github.com/angelocarly/kiyo-projects).
 
 ## Building & running
 
@@ -43,7 +43,7 @@ Then you should be able to launch your kiyo application and capture a frame.
 [This video](https://www.youtube.com/watch?v=uNB4RMZg1AM) does a nice job explaining the process.
 
 ## References
-- [myndgerapaptratptras tarstrsattarst](https://github.com/pudnax/myndgera)
+- [myndgera](https://github.com/pudnax/myndgera)
 - [paya](https://github.com/paratym/paya)
 
 ## Libraries
