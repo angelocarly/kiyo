@@ -86,7 +86,7 @@ impl App {
         }
     }
 
-    pub fn run(mut self, draw_config: DrawConfig, audio_shader: Option<fn(f32)->(f32, f32)>) {
+    pub fn run(mut self, draw_config: DrawConfig, audio_func: Option<fn(f32)->(f32, f32)>) {
 
         let resolution = UVec2::new( self.window.get_extent().width, self.window.get_extent().height );
         let mut orchestrator = match DrawOrchestrator::new(&mut self.renderer, resolution, &draw_config) {
@@ -110,35 +110,8 @@ impl App {
 
         // audio
 
-        fn silence(_:f32) -> (f32, f32) {(0.0, 0.0)}
-        
-        let sf = StreamFactory::default_factory().unwrap();
+        if let Some(audio_func) = audio_func {
 
-        let sample_rate = sf.config().sample_rate.0;
-        let mut sample_clock = 0;
-        let routin = move |len: usize| -> Vec<f32> {
-            (0..len / 2) // len is apparently left *and* right
-                .flat_map(|_| {
-                    sample_clock = (sample_clock + 1) % sample_rate;
-
-                    let (l, r) = audio_shader.unwrap_or(silence)(sample_clock as f32 / sample_rate as f32);
-                    vec![l, r]
-                })
-                .collect()
-        };
-        
-        let stream = sf.create_stream(routin).unwrap(); // creates stream from function "routin"
-        StreamTrait::play(&stream).unwrap();
-
-        /* For some reason if it's possible to branch, it doesn't play any sound
-
-        let mut play_audio = true;
-        match audio_shader {
-            Some(_) => {play_audio = true},
-            None => {println!("no audio");}
-        }
-        
-        if (play_audio){
             let sf = StreamFactory::default_factory().unwrap();
     
             let sample_rate = sf.config().sample_rate.0;
@@ -148,7 +121,7 @@ impl App {
                     .flat_map(|_| {
                         sample_clock = (sample_clock + 1) % sample_rate;
     
-                        let (l, r) = audio_shader.unwrap()(sample_clock as f32 / sample_rate as f32);
+                        let (l, r) = audio_func(sample_clock as f32 / sample_rate as f32);
                         vec![l, r]
                     })
                     .collect()
@@ -156,9 +129,9 @@ impl App {
             
             let stream = sf.create_stream(routin).unwrap();
             StreamTrait::play(&stream).unwrap();
-        } */
-        
-        // audio
+        }
+
+        // Event loop
 
         let mut last_print_time = SystemTime::now();
         let mut frame_count = 0;
