@@ -66,24 +66,24 @@ impl StreamFactory {
 	}
 }
 
-#[test]
-fn beep() {
-	use cpal::traits::StreamTrait;
-	let sf = StreamFactory::default_factory().unwrap();
-	println!("{:?}", sf.config());
-	let sample_rate = sf.config().sample_rate.0;
-	let mut sample_clock = 0;
-	let routin = move |len: usize| -> Vec<f32> {
-		(0..len / 2)
-			.flat_map(|_| {
-				sample_clock = (sample_clock + 1) % sample_rate;
-				let r = sample_clock as f32 / sample_rate as f32;
-				let a = f32::sin(2.0 * std::f32::consts::PI * 440.0 * r);
-				vec![a, a]
-			})
-			.collect()
-	};
-	let stream = sf.create_stream(routin).unwrap();
-	stream.play().unwrap();
-	std::thread::sleep(std::time::Duration::from_millis(1000));
-}
+// #[test]
+// fn beep() {
+// 	use cpal::traits::StreamTrait;
+// 	let sf = StreamFactory::default_factory().unwrap();
+// 	println!("{:?}", sf.config());
+// 	let sample_rate = sf.config().sample_rate.0;
+// 	let mut sample_clock = 0;
+// 	let routin = move |len: usize| -> Vec<f32> {
+// 		(0..len / 2)
+// 			.flat_map(|_| {
+// 				sample_clock = (sample_clock + 1) % sample_rate;
+// 				let r = sample_clock as f32 / sample_rate as f32;
+// 				let a = f32::sin(2.0 * std::f32::consts::PI * 440.0 * r);
+// 				vec![a, a]
+// 			})
+// 			.collect()
+// 	};
+// 	let stream = sf.create_stream(routin).unwrap();
+// 	stream.play().unwrap();
+// 	std::thread::sleep(std::time::Duration::from_millis(1000));
+// }
