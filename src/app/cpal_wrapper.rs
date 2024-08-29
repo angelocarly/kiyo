@@ -27,7 +27,7 @@ impl StreamFactory {
 			.ok_or("failed to find output device")?;
 		let config = device
 			.default_output_config()
-			.map_err(|e| format!("{}", e))?;
+			.map_err(|e| format!("{:?}", e))?;
 		if config.channels() != 2 {
 			return Err(format!(
 				"audio channel must be 2\nchannels: {}",
@@ -60,9 +60,9 @@ impl StreamFactory {
 						.zip(output)
 						.for_each(|(b, a)| *a = cpal::Sample::from(&b))
 				},
-				|err| eprintln!("an error occurred on stream: {}", err),
+				|err| eprintln!("an error occurred on stream: {:?}", err),
 			)
-			.map_err(|e| format!("{}", e))
+			.map_err(|e| format!("{:?}", e))
 	}
 }
 
