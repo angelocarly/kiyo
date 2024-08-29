@@ -8,12 +8,12 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  SDL_AUDIODRIVER: "disk"
 
 jobs:
   build:
 
     runs-on: ubuntu-latest
-
 
     steps:
     - uses: actions/checkout@v3
