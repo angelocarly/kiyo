@@ -8,20 +8,24 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  SDL_AUDIODRIVER: "disk"
 
 jobs:
   build:
 
     runs-on: ubuntu-latest
 
-
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Install Vulkan SDK
       uses: humbletim/install-vulkan-sdk@v1.1.1
-    
+
+    - name: Install alsa
+      run: sudo apt-get install -y librust-alsa-sys-dev
+
     - name: Build
       run: cargo build --verbose
+
     - name: Run tests
       run: cargo test --verbose

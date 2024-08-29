@@ -47,6 +47,9 @@ VK_LAYER_PATH=$VULKAN_SDK/share/vulkan/explicit_layer.d
 Then you should be able to launch your kiyo application and capture a frame.  
 [This video](https://www.youtube.com/watch?v=uNB4RMZg1AM) does a nice job explaining the process.
 
+## References
+- [sound-shader](https://github.com/ytanimura/sound-shader) - Cpal wrapper code and shader audio inspiration
+
 ## Libraries
 - [ash](https://github.com/ash-rs/ash) - Vulkan bindings
 - [winit](https://github.com/rust-windowing/winit) - Window creation and handling

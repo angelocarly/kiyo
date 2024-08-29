@@ -26,5 +26,5 @@ fn main() {
         }
     ]);
 
-    app.run(config);
+    app.run(config, None);
 }
