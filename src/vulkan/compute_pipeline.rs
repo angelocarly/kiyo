@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::ffi::CString;
+use std::path::PathBuf;
 use std::sync::Arc;
 use ash::vk;
 use ash::vk::PushConstantRange;
@@ -47,10 +48,10 @@ impl ComputePipeline {
 
 pub fn new(
     device: &Device,
-    shader_source: String,
-    layouts: &[&DescriptorSetLayout],
+    shader_source: PathBuf,
+    layouts: &[DescriptorSetLayout],
     push_constant_ranges: &[PushConstantRange],
-    macros: &HashMap<&str, &dyn ToString>
+    macros: &HashMap<String, String>
 ) -> Result<Self, PipelineErr> {
 
         let shader_code = load_shader_code(shader_source, macros)?;
@@ -100,5 +101,11 @@ pub fn new(
         Ok(Self {
             inner: Arc::new(pipeline_inner)
         })
+    }
+
+    pub fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone()
+        }
     }
 }

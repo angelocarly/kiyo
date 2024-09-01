@@ -1,4 +1,4 @@
-mod device;
+pub(crate) mod device;
 mod instance;
 mod surface;
 mod swapchain;
