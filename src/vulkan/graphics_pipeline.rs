@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::ffi::CString;
+use std::path::PathBuf;
 use std::sync::Arc;
 use ash::vk;
 use log::trace;
@@ -44,7 +45,7 @@ impl Pipeline for GraphicsPipeline {
 
 impl GraphicsPipeline {
 
-    pub fn new(device: &Device, render_pass: &RenderPass, vertex_shader_source: String, fragment_shader_source: String, layouts: &[&DescriptorSetLayout], macros: HashMap<&str, &dyn ToString>) -> Result<Self, PipelineErr> {
+    pub fn new(device: &Device, render_pass: &RenderPass, vertex_shader_source: PathBuf, fragment_shader_source: PathBuf, layouts: &[&DescriptorSetLayout], macros: HashMap<String, String>) -> Result<Self, PipelineErr> {
 
         let vertex_shader_code = load_shader_code(vertex_shader_source, &macros)?;
         let fragment_shader_code = load_shader_code(fragment_shader_source, &macros)?;

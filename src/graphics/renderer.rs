@@ -11,7 +11,7 @@ use crate::graphics::pipeline_store::PipelineStore;
 use crate::vulkan::{Allocator, CommandBuffer, CommandPool, Device, Instance, Surface, Swapchain};
 
 pub struct Renderer {
-    pub(crate) _pipeline_store: PipelineStore,
+    pub(crate) pipeline_store: PipelineStore,
     pub render_finished_semaphores: Vec<vk::Semaphore>,
     pub image_available_semaphores: Vec<vk::Semaphore>,
     pub command_buffers: Vec<CommandBuffer>,
@@ -90,7 +90,7 @@ impl Renderer {
             }
         }).collect::<Vec<vk::Fence>>();
 
-        let pipeline_store = PipelineStore::new();
+        let pipeline_store = PipelineStore::new( &device );
 
         let start_time = std::time::Instant::now();
 
@@ -108,7 +108,7 @@ impl Renderer {
             in_flight_fences,
             command_pool,
             command_buffers,
-            _pipeline_store: pipeline_store,
+            pipeline_store,
             frame_index: 0,
             start_time,
             proxy
@@ -202,15 +202,15 @@ impl Renderer {
         // Compute images
         let current_time = self.start_time.elapsed().as_secs_f32();
         for p in &draw_orchestrator.passes {
-            if let Some(pipeline) = draw_orchestrator.pipelines.get(p.compute_handle) {
-                command_buffer.bind_pipeline(pipeline);
+            if let Some(pipeline) = self.pipeline_store.get(p.pipeline_handle) {
+                command_buffer.bind_pipeline(&pipeline);
                 let push_constants = PushConstants {
                     time: current_time,
                     in_image: p.in_images.first().map(|&x| x as i32).unwrap_or(-1),
                     out_image: p.out_images.first().map(|&x| x as i32).unwrap_or(-1),
                 };
-                command_buffer.push_constants(pipeline, vk::ShaderStageFlags::COMPUTE, 0, &bytemuck::cast_slice(std::slice::from_ref(&push_constants)));
-                command_buffer.bind_push_descriptor_images(pipeline, &draw_orchestrator.images);
+                command_buffer.push_constants(&pipeline, vk::ShaderStageFlags::COMPUTE, 0, &bytemuck::cast_slice(std::slice::from_ref(&push_constants)));
+                command_buffer.bind_push_descriptor_images(&pipeline, &draw_orchestrator.images);
                 command_buffer.dispatch(p.dispatches.x, p.dispatches.y, p.dispatches.z);
             }
 

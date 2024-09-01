@@ -160,4 +160,10 @@ impl Device {
         let submits = [submit_info];
         unsafe { self.handle().queue_submit(*queue, &submits, fence).unwrap(); }
     }
+
+    pub fn clone(&self) -> Device {
+        Device {
+            inner: self.inner.clone(),
+        }
+    }
 }

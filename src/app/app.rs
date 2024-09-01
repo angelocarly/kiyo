@@ -179,17 +179,7 @@ impl App {
                     | Event::UserEvent( UserEvent::GlslUpdate(path) ) => {
                         debug!("Reloading shader: {:?}", path);
 
-                        // Currently just reloads all shaders, it might be better to only recompile the changed shader
-                        let new_orch = DrawOrchestrator::new(&mut self.renderer, resolution, &draw_config);
-                        match new_orch {
-                            Ok(o) => {
-                                orchestrator = o;
-                            }
-                            Err(e) => {
-                                error!("{}", e);
-                                log::info!("Shader contains error, not updating");
-                            }
-                        }
+                        self.renderer.pipeline_store.reload(&path);
                     }
                     _ => (),
                 }
