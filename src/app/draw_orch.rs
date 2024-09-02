@@ -89,7 +89,7 @@ impl DrawOrchestrator {
         }).collect::<Vec<Image>>();
 
         // Transition images
-        let image_command_buffer = Arc::new(CommandBuffer::new(&renderer.device, &renderer.command_pool));
+        let mut image_command_buffer = CommandBuffer::new(&renderer.device, &renderer.command_pool);
         image_command_buffer.begin();
         {
             for image in &images {
@@ -97,7 +97,7 @@ impl DrawOrchestrator {
             }
         }
         image_command_buffer.end();
-        renderer.device.submit_single_time_command(renderer.queue, image_command_buffer);
+        renderer.device.submit_single_time_command(renderer.queue, &image_command_buffer);
 
         let push_constant_ranges = Vec::from([
             vk::PushConstantRange::default()

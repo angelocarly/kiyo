@@ -116,8 +116,10 @@ impl Renderer {
     }
 
     fn transition_swapchain_images(device: &Device, command_pool: &CommandPool, queue: &Queue, swapchain: &Swapchain) {
-        let image_command_buffer = Arc::new(CommandBuffer::new(device, command_pool));
+        let mut image_command_buffer = CommandBuffer::new(device, command_pool);
+
         image_command_buffer.begin();
+
         swapchain.get_images().iter().for_each(|image| {
             let image_memory_barrier = vk::ImageMemoryBarrier::default()
                 .old_layout(vk::ImageLayout::UNDEFINED)
@@ -147,18 +149,18 @@ impl Renderer {
             }
         });
         image_command_buffer.end();
-        device.submit_single_time_command(*queue, image_command_buffer);
+        device.submit_single_time_command(*queue, &image_command_buffer);
     }
     
     fn record_command_buffer(&mut self, frame_index: usize, image_index: usize, draw_orchestrator: &mut DrawOrchestrator) {
 
-        let command_buffer = &self.command_buffers[frame_index];
+        let mut command_buffer = self.command_buffers[frame_index].clone();
 
         command_buffer.begin();
 
         for i in &draw_orchestrator.images {
             self.transition_image(
-                command_buffer,
+                &command_buffer,
                 &i.image,
                 vk::ImageLayout::GENERAL,
                 vk::ImageLayout::TRANSFER_DST_OPTIMAL,
@@ -188,7 +190,7 @@ impl Renderer {
             }
 
             self.transition_image(
-                command_buffer,
+                &command_buffer,
                 &i.image,
                 vk::ImageLayout::TRANSFER_DST_OPTIMAL,
                 vk::ImageLayout::GENERAL,
@@ -222,7 +224,7 @@ impl Renderer {
         let output_image = draw_orchestrator.images.last().expect("No images found to output");
 
         self.transition_image(
-            command_buffer,
+            &command_buffer,
             &output_image.image,
             vk::ImageLayout::GENERAL,
             vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
@@ -236,7 +238,7 @@ impl Renderer {
 
         // Transition the swapchain image
         self.transition_image(
-            command_buffer,
+            &command_buffer,
             &swapchain_image,
             vk::ImageLayout::PRESENT_SRC_KHR,
             vk::ImageLayout::TRANSFER_DST_OPTIMAL,
@@ -301,7 +303,7 @@ impl Renderer {
 
         // Transfer back to default states
         self.transition_image(
-            command_buffer,
+            &command_buffer,
             &swapchain_image,
             vk::ImageLayout::TRANSFER_DST_OPTIMAL,
             vk::ImageLayout::PRESENT_SRC_KHR,
@@ -312,7 +314,7 @@ impl Renderer {
         );
 
         self.transition_image(
-            command_buffer,
+            &command_buffer,
             &output_image.image,
             vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
             vk::ImageLayout::GENERAL,
