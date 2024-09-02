@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::sync::Arc;
 use ash::khr::swapchain;
 use ash::vk;
@@ -109,7 +110,7 @@ impl Device {
     pub fn submit_single_time_command(
         &self,
         queue: Queue,
-        command_buffer: Arc<CommandBuffer>
+        command_buffer: &CommandBuffer
     ) {
         unsafe {
             let command_buffers = [command_buffer.handle()];

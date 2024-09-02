@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::path::PathBuf;
@@ -41,6 +42,10 @@ impl Pipeline for ComputePipeline {
 
     fn layout(&self) -> vk::PipelineLayout {
         self.inner.pipeline_layout
+    }
+
+    fn reference(&self) -> Arc<dyn Any> {
+        self.inner.clone()
     }
 }
 
