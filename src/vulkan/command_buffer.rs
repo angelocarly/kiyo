@@ -1,5 +1,4 @@
 use std::any::Any;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use ash::vk;
 use ash::vk::WriteDescriptorSet;

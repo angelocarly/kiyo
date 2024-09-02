@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::mem::size_of;
-use std::sync::Arc;
 
 use ash::vk;
 use glam::{UVec2, UVec3};
