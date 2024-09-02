@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::time::Instant;
 use ash::vk;
 use ash::vk::{FenceCreateFlags, ImageAspectFlags, ImageSubresourceLayers, Offset3D, PhysicalDevice, Queue};

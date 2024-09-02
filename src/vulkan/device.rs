@@ -1,4 +1,3 @@
-use std::rc::Rc;
 use std::sync::Arc;
 use ash::khr::swapchain;
 use ash::vk;
