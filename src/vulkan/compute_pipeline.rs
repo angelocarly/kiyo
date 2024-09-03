@@ -1,9 +1,12 @@
+use std::any::Any;
 use std::collections::HashMap;
 use std::ffi::CString;
+use std::path::PathBuf;
 use std::sync::Arc;
 use ash::vk;
 use ash::vk::PushConstantRange;
-use crate::vulkan::{DescriptorSetLayout, Device, Pipeline};
+use log::{trace};
+use crate::vulkan::{DescriptorSetLayout, Device, Pipeline, LOG_TARGET};
 use crate::vulkan::device::DeviceInner;
 use crate::vulkan::pipeline::{create_shader_module, load_shader_code, PipelineErr};
 
@@ -16,8 +19,10 @@ pub struct ComputePipelineInner {
 impl Drop for ComputePipelineInner {
     fn drop(&mut self) {
         unsafe {
+            let compute_pipeline_addr = format!("{:?}", self.compute_pipeline);
             self.device_dep.device.destroy_pipeline(self.compute_pipeline, None);
             self.device_dep.device.destroy_pipeline_layout(self.pipeline_layout, None);
+            trace!(target: LOG_TARGET, "Destroyed compute pipeline: [{}]", compute_pipeline_addr);
         }
     }
 }
@@ -38,16 +43,20 @@ impl Pipeline for ComputePipeline {
     fn layout(&self) -> vk::PipelineLayout {
         self.inner.pipeline_layout
     }
+
+    fn reference(&self) -> Arc<dyn Any> {
+        self.inner.clone()
+    }
 }
 
 impl ComputePipeline {
 
 pub fn new(
     device: &Device,
-    shader_source: String,
-    layouts: &[&DescriptorSetLayout],
+    shader_source: PathBuf,
+    layouts: &[DescriptorSetLayout],
     push_constant_ranges: &[PushConstantRange],
-    macros: &HashMap<&str, &dyn ToString>
+    macros: &HashMap<String, String>
 ) -> Result<Self, PipelineErr> {
 
         let shader_code = load_shader_code(shader_source, macros)?;
@@ -84,6 +93,8 @@ pub fn new(
                 .expect("Failed to create graphics pipeline")[0]
         };
 
+        trace!(target: LOG_TARGET, "Created compute pipeline: [{:?}]", compute_pipeline);
+
         unsafe { device.handle().destroy_shader_module(shader_module, None); }
 
         let pipeline_inner = ComputePipelineInner {
@@ -95,5 +106,11 @@ pub fn new(
         Ok(Self {
             inner: Arc::new(pipeline_inner)
         })
+    }
+
+    pub fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone()
+        }
     }
 }

@@ -1,8 +1,9 @@
 use ash::khr::surface;
 use ash::vk;
 use ash::vk::{PresentModeKHR, SurfaceCapabilitiesKHR, SurfaceKHR};
+use log::trace;
 use crate::app::Window;
-use crate::vulkan::Instance;
+use crate::vulkan::{Instance, LOG_TARGET};
 
 /// A presentation surface for rendering graphics to a window.
 pub struct Surface {
@@ -23,6 +24,8 @@ impl Surface {
                 None,
             ).expect("Failed to get surface.")
         };
+
+        trace!(target: LOG_TARGET, "Created surface: {:?}", surface);
 
         Surface {
             surface,
@@ -51,7 +54,9 @@ impl Surface {
 impl Drop for Surface {
     fn drop(&mut self) {
         unsafe {
+            let surface_addr = format!("{:?}", self.surface);
             self.surface_loader.destroy_surface(self.surface, None);
+            trace!(target: LOG_TARGET, "Destroyed surface: [{}]", surface_addr);
         }
     }
 }

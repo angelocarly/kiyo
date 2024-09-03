@@ -19,11 +19,11 @@ shaderc = "0.8.3"
 log = "0.4.21"
 env_logger = "0.11.5"
 gpu-allocator = { version = "0.27.0" }
-egui = "0.24.1"
-egui-ash = { version = "0.4.0", features = ["gpu-allocator"] }
 glam = "0.28.0"
-bytemuck = "1.16.1"
+bytemuck = { version = "1.17.0", features = ["derive"] }
 notify = { version = "6.1.1" }
+notify-debouncer-mini = "0.4.1"
+slotmap = "1.0.7"
 
 [dev-dependencies]
 

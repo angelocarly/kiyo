@@ -4,7 +4,7 @@ use ash::vk;
 use ash::vk::{CompositeAlphaFlagsKHR, ImageUsageFlags, PresentModeKHR, SharingMode, SurfaceFormatKHR, SwapchainKHR};
 use log::info;
 use crate::app::Window;
-use crate::vulkan::{Device, Instance, Surface};
+use crate::vulkan::{Device, Instance, Surface, LOG_TARGET};
 use crate::vulkan::device::DeviceInner;
 
 /// Vulkan does not have a concept of a "default framebuffer". Instead, we need a framework that "owns" the images that will eventually be presented to the screen.
@@ -53,7 +53,7 @@ impl Swapchain {
             })
             .unwrap_or(available_formats.first().expect("No surface format found"));
 
-        info!("Using surface format: {:?}", surface_format);
+        info!(target: LOG_TARGET, "Using swapchain surface format: {:?}", surface_format);
 
         let surface_capabilities = surface.get_surface_capabilities(physical_device);
 

@@ -1,8 +1,11 @@
+use std::any::Any;
 use std::collections::HashMap;
 use std::ffi::CString;
+use std::path::PathBuf;
 use std::sync::Arc;
 use ash::vk;
-use crate::vulkan::{DescriptorSetLayout, Device, Pipeline, RenderPass};
+use log::trace;
+use crate::vulkan::{DescriptorSetLayout, Device, Pipeline, RenderPass, LOG_TARGET};
 use crate::vulkan::device::DeviceInner;
 use crate::vulkan::pipeline::{create_shader_module, load_shader_code, PipelineErr};
 
@@ -15,8 +18,10 @@ pub struct GraphicsPipelineInner {
 impl Drop for GraphicsPipelineInner {
     fn drop(&mut self) {
         unsafe {
+            let graphics_pipeline_addr = format!("{:?}", self.graphics_pipeline);
             self.device_dep.device.destroy_pipeline(self.graphics_pipeline, None);
             self.device_dep.device.destroy_pipeline_layout(self.pipeline_layout, None);
+            trace!(target: LOG_TARGET, "Destroyed graphics pipeline: [{}]", graphics_pipeline_addr);
         }
     }
 }
@@ -37,11 +42,15 @@ impl Pipeline for GraphicsPipeline {
     fn layout(&self) -> vk::PipelineLayout {
         self.inner.pipeline_layout
     }
+
+    fn reference(&self) -> Arc<dyn Any> {
+        self.inner.clone()
+    }
 }
 
 impl GraphicsPipeline {
 
-    pub fn new(device: &Device, render_pass: &RenderPass, vertex_shader_source: String, fragment_shader_source: String, layouts: &[&DescriptorSetLayout], macros: HashMap<&str, &dyn ToString>) -> Result<Self, PipelineErr> {
+    pub fn new(device: &Device, render_pass: &RenderPass, vertex_shader_source: PathBuf, fragment_shader_source: PathBuf, layouts: &[&DescriptorSetLayout], macros: HashMap<String, String>) -> Result<Self, PipelineErr> {
 
         let vertex_shader_code = load_shader_code(vertex_shader_source, &macros)?;
         let fragment_shader_code = load_shader_code(fragment_shader_source, &macros)?;
@@ -159,6 +168,8 @@ impl GraphicsPipeline {
                 .create_graphics_pipelines(vk::PipelineCache::null(), &[graphics_pipeline_create_info], None)
                 .expect("Failed to create graphics pipeline")[0]
         };
+
+        trace!(target: LOG_TARGET, "Created graphics pipeline: [{:?}]", graphics_pipeline);
 
         unsafe { device.handle().destroy_shader_module(fragment_shader_module, None); }
         unsafe { device.handle().destroy_shader_module(vertex_shader_module, None); }

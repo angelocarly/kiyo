@@ -1,4 +1,4 @@
-mod device;
+pub(crate) mod device;
 mod instance;
 mod surface;
 mod swapchain;
@@ -12,6 +12,8 @@ mod pipeline;
 mod image;
 mod descriptor_set_layout;
 mod allocator;
+
+pub(crate) const LOG_TARGET: &'static str = "kiyo::vulkan";
 
 pub use self::allocator::Allocator;
 pub use self::command_buffer::CommandBuffer;

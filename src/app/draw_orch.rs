@@ -1,12 +1,14 @@
-use crate::vulkan::PipelineErr;
 use std::collections::HashMap;
 use std::mem::size_of;
-use std::sync::Arc;
+
 use ash::vk;
 use glam::{UVec2, UVec3};
-use crate::app::{Renderer};
-use crate::app::renderer::PushConstants;
-use crate::vulkan::{CommandBuffer, ComputePipeline, DescriptorSetLayout, Image};
+use slotmap::DefaultKey;
+
+use crate::graphics::{PipelineConfig, Renderer};
+use crate::graphics::renderer::PushConstants;
+use crate::vulkan::{CommandBuffer, DescriptorSetLayout, Image};
+use crate::vulkan::PipelineErr;
 
 #[derive(Clone)]
 pub struct ImageResource {
@@ -39,12 +41,15 @@ impl DrawConfig {
 }
 
 pub struct ShaderPass {
-    pub compute_pipeline: ComputePipeline,
     pub dispatches: glam::UVec3,
     pub in_images: Vec<u32>,
     pub out_images: Vec<u32>,
+    pub pipeline_handle: DefaultKey,
 }
 
+/**
+ *  Contains all render related structures relating to a config.
+ */
 pub struct DrawOrchestrator {
     pub compute_descriptor_set_layout: DescriptorSetLayout,
     pub images: Vec<Image>,
@@ -83,7 +88,7 @@ impl DrawOrchestrator {
         }).collect::<Vec<Image>>();
 
         // Transition images
-        let image_command_buffer = Arc::new(CommandBuffer::new(&renderer.device, &renderer.command_pool));
+        let mut image_command_buffer = CommandBuffer::new(&renderer.device, &renderer.command_pool);
         image_command_buffer.begin();
         {
             for image in &images {
@@ -91,14 +96,14 @@ impl DrawOrchestrator {
             }
         }
         image_command_buffer.end();
-        renderer.device.submit_single_time_command(renderer.queue, image_command_buffer);
+        renderer.device.submit_single_time_command(renderer.queue, &image_command_buffer);
 
-        let push_constant_ranges = &[
+        let push_constant_ranges = Vec::from([
             vk::PushConstantRange::default()
                 .stage_flags(vk::ShaderStageFlags::COMPUTE)
                 .offset(0)
                 .size(size_of::<PushConstants>() as u32),
-        ];
+        ]);
 
         let workgroup_size = 32;
         let full_screen_dispatches = UVec3::new(
@@ -107,21 +112,22 @@ impl DrawOrchestrator {
             1
         );
 
-        let mut macros: HashMap<&str, &dyn ToString> = HashMap::new();
-        macros.insert("NUM_IMAGES", &image_count);
-        macros.insert("WORKGROUP_SIZE", &workgroup_size);
+        let mut macros: HashMap<String, String> = HashMap::new();
+        macros.insert("NUM_IMAGES".to_string(), image_count.to_string());
+        macros.insert("WORKGROUP_SIZE".to_string(), workgroup_size.to_string());
 
         // Passes
         let passes = draw_config.passes
             .iter()
             .map(|c| {
-                let compute_pipeline = ComputePipeline::new(
-                    &renderer.device,
-                    c.shader.to_string(),
-                    &[&compute_descriptor_set_layout],
-                    push_constant_ranges,
-                    &macros
-                )?;
+                let pipeline_handle = renderer.pipeline_store.insert(
+                    PipelineConfig {
+                        shader_path: c.shader.clone().into(),
+                        descriptor_set_layouts: vec![compute_descriptor_set_layout.clone()],
+                        push_constant_ranges: push_constant_ranges.clone(),
+                        macros: macros.clone()
+                    }
+                ).unwrap();
 
                 let dispatches = match c.dispatches {
                     DispatchConfig::Count(x, y, z) => {
@@ -133,7 +139,7 @@ impl DrawOrchestrator {
                 };
 
                 Ok(ShaderPass {
-                    compute_pipeline,
+                    pipeline_handle,
                     dispatches: dispatches,
                     in_images: c.input_resources.clone(),
                     out_images: c.output_resources.clone(),

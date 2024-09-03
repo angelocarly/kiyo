@@ -1,18 +1,25 @@
 use std::sync::Arc;
 use ash::vk;
 use ash::vk::DescriptorSetLayoutBinding;
-use crate::vulkan::Device;
+use log::trace;
+use crate::vulkan::{Device, LOG_TARGET};
 use crate::vulkan::device::DeviceInner;
 
-pub struct DescriptorSetLayout {
+struct DescriptorSetLayoutInner {
     device_dep: Arc<DeviceInner>,
     layout: vk::DescriptorSetLayout,
 }
 
-impl Drop for DescriptorSetLayout {
+pub struct DescriptorSetLayout {
+    inner: Arc<DescriptorSetLayoutInner>,
+}
+
+impl Drop for DescriptorSetLayoutInner {
     fn drop(&mut self) {
         unsafe {
+            let layout_addr = format!("{:?}", self.layout);
             self.device_dep.device.destroy_descriptor_set_layout(self.layout, None);
+            trace!(target: LOG_TARGET, "Destroyed descriptor set layout: [{}]", layout_addr);
         }
     }
 }
@@ -31,9 +38,13 @@ impl DescriptorSetLayout {
                 .expect("Failed to create descriptor set layout")
         };
 
+        trace!(target: LOG_TARGET, "Created descriptor set layout: {:?}", layout);
+
         DescriptorSetLayout {
-            device_dep: device.inner.clone(),
-            layout,
+            inner: Arc::new(DescriptorSetLayoutInner {
+                device_dep: device.inner.clone(),
+                layout,
+            }),
         }
     }
 
@@ -45,7 +56,13 @@ impl DescriptorSetLayout {
         DescriptorSetLayout::create(device, vk::DescriptorSetLayoutCreateFlags::PUSH_DESCRIPTOR_KHR, layout_bindings)
     }
 
+    pub fn clone(&self) -> DescriptorSetLayout {
+        DescriptorSetLayout {
+            inner: self.inner.clone(),
+        }
+    }
+
     pub(crate) fn handle(&self) -> vk::DescriptorSetLayout {
-        self.layout
+        self.inner.layout
     }
 }

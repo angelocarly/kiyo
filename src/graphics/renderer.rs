@@ -1,13 +1,16 @@
-use std::sync::Arc;
 use std::time::Instant;
 use ash::vk;
 use ash::vk::{FenceCreateFlags, ImageAspectFlags, ImageSubresourceLayers, Offset3D, PhysicalDevice, Queue};
 use bytemuck::{Pod, Zeroable};
 use gpu_allocator::vulkan::{AllocatorCreateDesc};
+use winit::event_loop::EventLoopProxy;
 use crate::app::{DrawOrchestrator, Window};
+use crate::app::app::UserEvent;
+use crate::graphics::pipeline_store::PipelineStore;
 use crate::vulkan::{Allocator, CommandBuffer, CommandPool, Device, Instance, Surface, Swapchain};
 
 pub struct Renderer {
+    pub(crate) pipeline_store: PipelineStore,
     pub render_finished_semaphores: Vec<vk::Semaphore>,
     pub image_available_semaphores: Vec<vk::Semaphore>,
     pub command_buffers: Vec<CommandBuffer>,
@@ -22,6 +25,7 @@ pub struct Renderer {
     pub device: Device,
     pub physical_device: PhysicalDevice,
     pub instance: Instance,
+    pub proxy: EventLoopProxy<UserEvent>,
     pub start_time: Instant,
 }
 
@@ -34,7 +38,7 @@ pub struct PushConstants {
 }
 
 impl Renderer {
-    pub fn new(window: &Window, vsync: bool) -> Renderer {
+    pub fn new(window: &Window, proxy: EventLoopProxy<UserEvent>, vsync: bool) -> Renderer {
         let entry = ash::Entry::linked();
         let instance = Instance::new(&entry, window.display_handle());
         let surface = Surface::new(&entry, &instance, &window);
@@ -85,6 +89,8 @@ impl Renderer {
             }
         }).collect::<Vec<vk::Fence>>();
 
+        let pipeline_store = PipelineStore::new( &device );
+
         let start_time = std::time::Instant::now();
 
         Self {
@@ -101,14 +107,18 @@ impl Renderer {
             in_flight_fences,
             command_pool,
             command_buffers,
+            pipeline_store,
             frame_index: 0,
             start_time,
+            proxy
         }
     }
 
     fn transition_swapchain_images(device: &Device, command_pool: &CommandPool, queue: &Queue, swapchain: &Swapchain) {
-        let image_command_buffer = Arc::new(CommandBuffer::new(device, command_pool));
+        let mut image_command_buffer = CommandBuffer::new(device, command_pool);
+
         image_command_buffer.begin();
+
         swapchain.get_images().iter().for_each(|image| {
             let image_memory_barrier = vk::ImageMemoryBarrier::default()
                 .old_layout(vk::ImageLayout::UNDEFINED)
@@ -138,18 +148,18 @@ impl Renderer {
             }
         });
         image_command_buffer.end();
-        device.submit_single_time_command(*queue, image_command_buffer);
+        device.submit_single_time_command(*queue, &image_command_buffer);
     }
     
     fn record_command_buffer(&mut self, frame_index: usize, image_index: usize, draw_orchestrator: &mut DrawOrchestrator) {
 
-        let command_buffer = &self.command_buffers[frame_index];
+        let mut command_buffer = self.command_buffers[frame_index].clone();
 
         command_buffer.begin();
 
         for i in &draw_orchestrator.images {
             self.transition_image(
-                command_buffer,
+                &command_buffer,
                 &i.image,
                 vk::ImageLayout::GENERAL,
                 vk::ImageLayout::TRANSFER_DST_OPTIMAL,
@@ -179,7 +189,7 @@ impl Renderer {
             }
 
             self.transition_image(
-                command_buffer,
+                &command_buffer,
                 &i.image,
                 vk::ImageLayout::TRANSFER_DST_OPTIMAL,
                 vk::ImageLayout::GENERAL,
@@ -193,15 +203,17 @@ impl Renderer {
         // Compute images
         let current_time = self.start_time.elapsed().as_secs_f32();
         for p in &draw_orchestrator.passes {
-            command_buffer.bind_pipeline(&p.compute_pipeline);
-            let push_constants = PushConstants {
-                time: current_time,
-                in_image: p.in_images.first().map(|&x| x as i32).unwrap_or(-1),
-                out_image: p.out_images.first().map(|&x| x as i32).unwrap_or(-1),
-            };
-            command_buffer.push_constants(&p.compute_pipeline, vk::ShaderStageFlags::COMPUTE, 0, &bytemuck::cast_slice(std::slice::from_ref(&push_constants)));
-            command_buffer.bind_push_descriptor_images(&p.compute_pipeline, &draw_orchestrator.images);
-            command_buffer.dispatch(p.dispatches.x, p.dispatches.y, p.dispatches.z);
+            if let Some(pipeline) = self.pipeline_store.get(p.pipeline_handle) {
+                command_buffer.bind_pipeline(&pipeline);
+                let push_constants = PushConstants {
+                    time: current_time,
+                    in_image: p.in_images.first().map(|&x| x as i32).unwrap_or(-1),
+                    out_image: p.out_images.first().map(|&x| x as i32).unwrap_or(-1),
+                };
+                command_buffer.push_constants(&pipeline, vk::ShaderStageFlags::COMPUTE, 0, &bytemuck::cast_slice(std::slice::from_ref(&push_constants)));
+                command_buffer.bind_push_descriptor_images(&pipeline, &draw_orchestrator.images);
+                command_buffer.dispatch(p.dispatches.x, p.dispatches.y, p.dispatches.z);
+            }
 
             // TODO: Add synchronization between passes
         };
@@ -211,7 +223,7 @@ impl Renderer {
         let output_image = draw_orchestrator.images.last().expect("No images found to output");
 
         self.transition_image(
-            command_buffer,
+            &command_buffer,
             &output_image.image,
             vk::ImageLayout::GENERAL,
             vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
@@ -225,7 +237,7 @@ impl Renderer {
 
         // Transition the swapchain image
         self.transition_image(
-            command_buffer,
+            &command_buffer,
             &swapchain_image,
             vk::ImageLayout::PRESENT_SRC_KHR,
             vk::ImageLayout::TRANSFER_DST_OPTIMAL,
@@ -290,7 +302,7 @@ impl Renderer {
 
         // Transfer back to default states
         self.transition_image(
-            command_buffer,
+            &command_buffer,
             &swapchain_image,
             vk::ImageLayout::TRANSFER_DST_OPTIMAL,
             vk::ImageLayout::PRESENT_SRC_KHR,
@@ -301,7 +313,7 @@ impl Renderer {
         );
 
         self.transition_image(
-            command_buffer,
+            &command_buffer,
             &output_image.image,
             vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
             vk::ImageLayout::GENERAL,
