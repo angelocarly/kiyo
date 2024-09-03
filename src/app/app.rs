@@ -181,7 +181,9 @@ impl App {
                     | Event::UserEvent( UserEvent::GlslUpdate(path) ) => {
                         debug!("Reloading shader: {:?}", path);
 
-                        self.renderer.pipeline_store.reload(&path);
+                        if let Err(e) = self.renderer.pipeline_store.reload(&path) {
+                            error!("{}", e);
+                        }
                     }
                     _ => (),
                 }

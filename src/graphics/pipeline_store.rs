@@ -59,7 +59,7 @@ impl PipelineStore {
         self.inner.lock().unwrap().pipelines.get(key).map(|p| p.pipeline.clone())
     }
 
-    pub fn reload(&mut self, path: &PathBuf) {
+    pub fn reload(&mut self, path: &PathBuf) -> Result<(), PipelineErr> {
         let mut inner = self.inner.lock().unwrap();
         let device = inner.device.clone();
 
@@ -73,9 +73,11 @@ impl PipelineStore {
                     &config.descriptor_set_layouts.as_slice(),
                     &config.push_constant_ranges.as_slice(),
                     &config.macros
-                ).unwrap();
+                )?;
                 handle.1.pipeline = pipeline;
             }
         }
+
+        Ok(())
     }
 }
