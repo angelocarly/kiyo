@@ -84,7 +84,7 @@ impl CommandBuffer {
         }
     }
 
-    pub fn bind_push_descriptor_images(&self, pipeline: &dyn Pipeline, images: &Vec<Image>) {
+    pub fn bind_push_descriptor_images(&self, pipeline: &dyn Pipeline, images: &Vec<&Image>) {
         let inner = self.inner();
 
         let bindings = images.iter().map(|image| {

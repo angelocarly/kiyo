@@ -6,8 +6,9 @@ use gpu_allocator::vulkan::{AllocatorCreateDesc};
 use winit::event_loop::EventLoopProxy;
 use crate::app::{DrawOrchestrator, Window};
 use crate::app::app::UserEvent;
+use crate::app::draw_orch::ClearConfig;
 use crate::graphics::pipeline_store::PipelineStore;
-use crate::vulkan::{Allocator, CommandBuffer, CommandPool, Device, Instance, Surface, Swapchain};
+use crate::vulkan::{Allocator, CommandBuffer, CommandPool, Device, Image, Instance, Surface, Swapchain};
 
 pub struct Renderer {
     pub(crate) pipeline_store: PipelineStore,
@@ -157,10 +158,10 @@ impl Renderer {
 
         command_buffer.begin();
 
-        for i in &draw_orchestrator.images {
+        for i in &draw_orchestrator.image_resources {
             self.transition_image(
                 &command_buffer,
-                &i.image,
+                &i.image.handle(),
                 vk::ImageLayout::GENERAL,
                 vk::ImageLayout::TRANSFER_DST_OPTIMAL,
                 vk::PipelineStageFlags::TOP_OF_PIPE,
@@ -169,28 +170,33 @@ impl Renderer {
                 vk::AccessFlags::TRANSFER_WRITE
             );
 
-            unsafe {
-                self.device.handle()
-                    .cmd_clear_color_image(
-                        command_buffer.handle(),
-                        i.image,
-                        vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                        &vk::ClearColorValue {
-                            float32: [1.0, 0.0, 0.0, 1.0]
-                        },
-                        &[vk::ImageSubresourceRange {
-                            aspect_mask: ImageAspectFlags::COLOR,
-                            base_mip_level: 0,
-                            level_count: 1,
-                            base_array_layer: 0,
-                            layer_count: 1,
-                        }]
-                    );
+            match &i.clear {
+                ClearConfig::None => {},
+                ClearConfig::Color(r,g,b) => {
+                unsafe {
+                    self.device.handle()
+                        .cmd_clear_color_image(
+                            command_buffer.handle(),
+                            *i.image.handle(),
+                            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                            &vk::ClearColorValue {
+                                float32: [*r, *g, *b, 1f32]
+                            },
+                            &[vk::ImageSubresourceRange {
+                                aspect_mask: ImageAspectFlags::COLOR,
+                                base_mip_level: 0,
+                                level_count: 1,
+                                base_array_layer: 0,
+                                layer_count: 1,
+                            }]
+                        );
+                    }
+                }
             }
 
             self.transition_image(
                 &command_buffer,
-                &i.image,
+                &i.image.handle(),
                 vk::ImageLayout::TRANSFER_DST_OPTIMAL,
                 vk::ImageLayout::GENERAL,
                 vk::PipelineStageFlags::TRANSFER,
@@ -211,7 +217,12 @@ impl Renderer {
                     out_image: p.out_images.first().map(|&x| x as i32).unwrap_or(-1),
                 };
                 command_buffer.push_constants(&pipeline, vk::ShaderStageFlags::COMPUTE, 0, &bytemuck::cast_slice(std::slice::from_ref(&push_constants)));
-                command_buffer.bind_push_descriptor_images(&pipeline, &draw_orchestrator.images);
+                command_buffer.bind_push_descriptor_images(
+                    &pipeline,
+                    &draw_orchestrator.image_resources.iter().map(|r| {
+                        &r.image
+                    }).collect::<Vec<&Image>>()
+                );
                 command_buffer.dispatch(p.dispatches.x, p.dispatches.y, p.dispatches.z);
             }
 
@@ -220,7 +231,7 @@ impl Renderer {
 
         // Copy to swapchain
 
-        let output_image = draw_orchestrator.images.last().expect("No images found to output");
+        let output_image = &draw_orchestrator.image_resources.last().expect("No images found to output").image;
 
         self.transition_image(
             &command_buffer,

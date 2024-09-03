@@ -1,5 +1,5 @@
 use kiyo::app::app::{App, AppConfig};
-use kiyo::app::draw_orch::{DispatchConfig, DrawConfig, Pass};
+use kiyo::app::draw_orch::{ClearConfig, DispatchConfig, DrawConfig, ImageConfig, Pass};
 
 fn main() {
 
@@ -10,15 +10,21 @@ fn main() {
         log_fps: false,
     });
 
-    let mut config = DrawConfig::new();
-    config.passes = Vec::from([
-        Pass {
-            shader: "examples/with-audio/shaders/colors.comp".to_string(),
-            dispatches: DispatchConfig::FullScreen,
-            input_resources: Vec::from([]),
-            output_resources: Vec::from([ 0 ]),
-        },
-    ]);
+    let config = DrawConfig {
+        images: Vec::from([
+            ImageConfig {
+                clear: ClearConfig::Color(0.0, 0.0, 0.0)
+            },
+        ]),
+        passes: Vec::from([
+            Pass {
+                shader: "examples/with-audio/shaders/colors.comp".to_string(),
+                dispatches: DispatchConfig::FullScreen,
+                input_resources: Vec::from([]),
+                output_resources: Vec::from([ 0 ]),
+            },
+        ])
+    };
 
     // t: time in seconds
     fn audio_shader(t:f32) -> (f32, f32) {

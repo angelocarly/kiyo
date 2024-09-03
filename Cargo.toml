@@ -32,3 +32,9 @@ name = "simple-render"
 
 [[example]]
 name = "blur-pass"
+
+[[example]]
+name = "with-audio"
+
+[[example]]
+name = "feedback"

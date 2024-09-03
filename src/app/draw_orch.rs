@@ -3,17 +3,13 @@ use std::mem::size_of;
 
 use ash::vk;
 use glam::{UVec2, UVec3};
+use log::error;
 use slotmap::DefaultKey;
 
 use crate::graphics::{PipelineConfig, Renderer};
 use crate::graphics::renderer::PushConstants;
 use crate::vulkan::{CommandBuffer, DescriptorSetLayout, Image};
 use crate::vulkan::PipelineErr;
-
-#[derive(Clone)]
-pub struct ImageResource {
-    pub id: u32,
-}
 
 pub enum DispatchConfig
 {
@@ -28,16 +24,20 @@ pub struct Pass {
     pub output_resources: Vec<u32>,
 }
 
-pub struct DrawConfig {
-    pub passes: Vec<Pass>,
+#[derive(Clone)]
+pub enum ClearConfig {
+    None,
+    Color(f32,f32,f32),
 }
 
-impl DrawConfig {
-    pub fn new() -> DrawConfig {
-        DrawConfig {
-            passes: Vec::new(),
-        }
-    }
+#[derive(Clone)]
+pub struct ImageConfig {
+    pub clear: ClearConfig,
+}
+
+pub struct DrawConfig {
+    pub passes: Vec<Pass>,
+    pub images: Vec<ImageConfig>,
 }
 
 pub struct ShaderPass {
@@ -47,21 +47,33 @@ pub struct ShaderPass {
     pub pipeline_handle: DefaultKey,
 }
 
+pub struct ImageResource {
+    pub image: Image,
+    pub clear: ClearConfig,
+}
+
 /**
  *  Contains all render related structures relating to a config.
  */
 pub struct DrawOrchestrator {
     pub compute_descriptor_set_layout: DescriptorSetLayout,
-    pub images: Vec<Image>,
+    pub image_resources: Vec<ImageResource>,
     pub passes: Vec<ShaderPass>,
 }
 
 impl DrawOrchestrator {
     pub fn new(renderer: &mut Renderer, resolution: UVec2, draw_config: &DrawConfig) -> Result<DrawOrchestrator, PipelineErr> {
 
-        let image_count = draw_config.passes.iter()
+        let image_count = draw_config.images.len() as u32;
+
+        // Verify max referred index
+        let max_reffered_image = draw_config.passes.iter()
             .map(|p| p.output_resources.iter())
-            .flatten().max().unwrap() + 1;
+            .flatten().max().unwrap();
+        if *max_reffered_image as i32 > image_count as i32 - 1 {
+            error!("Image index out of bounds, provide enough image resources");
+            panic!("Image index out of bounds, provide enough image resources");
+        }
 
         // Layout
         let layout_bindings = &[
@@ -77,22 +89,27 @@ impl DrawOrchestrator {
         );
 
         // Images
-        let images = (0..image_count).map(|_| {
-            Image::new(
+        let image_resources = draw_config.images.iter().map(|c| {
+            let image = Image::new(
                 &renderer.device,
                 &mut renderer.allocator,
                 resolution.x,
                 resolution.y,
                 vk::ImageUsageFlags::STORAGE | vk::ImageUsageFlags::TRANSFER_SRC | vk::ImageUsageFlags::TRANSFER_DST
-            )
-        }).collect::<Vec<Image>>();
+            );
+
+            ImageResource {
+                image,
+                clear: c.clear.clone(),
+            }
+        }).collect::<Vec<ImageResource>>();
 
         // Transition images
         let mut image_command_buffer = CommandBuffer::new(&renderer.device, &renderer.command_pool);
         image_command_buffer.begin();
         {
-            for image in &images {
-                renderer.transition_image(&image_command_buffer, &image.handle(), vk::ImageLayout::UNDEFINED, vk::ImageLayout::GENERAL, vk::PipelineStageFlags::TOP_OF_PIPE, vk::PipelineStageFlags::BOTTOM_OF_PIPE, vk::AccessFlags::empty(), vk::AccessFlags::empty());
+            for image_resource in &image_resources {
+                renderer.transition_image(&image_command_buffer, &image_resource.image.handle(), vk::ImageLayout::UNDEFINED, vk::ImageLayout::GENERAL, vk::PipelineStageFlags::TOP_OF_PIPE, vk::PipelineStageFlags::BOTTOM_OF_PIPE, vk::AccessFlags::empty(), vk::AccessFlags::empty());
             }
         }
         image_command_buffer.end();
@@ -149,7 +166,7 @@ impl DrawOrchestrator {
 
         Ok(DrawOrchestrator {
             compute_descriptor_set_layout,
-            images,
+            image_resources,
             passes
         })
     }
