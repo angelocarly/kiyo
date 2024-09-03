@@ -144,7 +144,7 @@ impl DrawOrchestrator {
                         push_constant_ranges: push_constant_ranges.clone(),
                         macros: macros.clone()
                     }
-                ).unwrap();
+                )?;
 
                 let dispatches = match c.dispatches {
                     DispatchConfig::Count(x, y, z) => {
