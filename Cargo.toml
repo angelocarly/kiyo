@@ -37,4 +37,7 @@ name = "blur-pass"
 name = "with-audio"
 
 [[example]]
+name = "clear"
+
+[[example]]
 name = "feedback"

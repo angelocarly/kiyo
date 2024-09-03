@@ -69,7 +69,7 @@ impl DrawOrchestrator {
         // Verify max referred index
         let max_reffered_image = draw_config.passes.iter()
             .map(|p| p.output_resources.iter())
-            .flatten().max().unwrap();
+            .flatten().max().unwrap_or(&0);
         if *max_reffered_image as i32 > image_count as i32 - 1 {
             error!("Image index out of bounds, provide enough image resources");
             panic!("Image index out of bounds, provide enough image resources");
