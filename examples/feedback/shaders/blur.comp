@@ -27,6 +27,32 @@ void main()
         return;
     }
 
+    float kernel[9];
+    // Top row
+    kernel[0] = 1.f;
+    kernel[1] = 2.f;
+    kernel[2] = 1.f;
+
+    // Middle row
+    kernel[3] = 2.f;
+    kernel[4] = 4.f;
+    kernel[5] = 2.f;
+
+    // Bottom row
+    kernel[6] = 1.f;
+    kernel[7] = 2.f;
+    kernel[8] = 1.f;
+
+    float sum = 0.f;
+    for(int i=0; i<9; ++i)
+    {
+        sum += kernel[i];
+    }
+    for(int i=0; i<9; ++i)
+    {
+        kernel[i] /= sum;
+    }
+
     // Blur
     vec4 c = vec4( 0.0f );
     int range = 1;
@@ -35,6 +61,7 @@ void main()
         for( int y = -range; y <= range; y++ )
         {
             ivec2 offset = ivec2( x, y );
+            float k = kernel[ x + range + ( y + range ) * 3 ];
             vec4 neighbor = imageLoad( images[constants.in_image], p + offset );
             c += neighbor;
         }

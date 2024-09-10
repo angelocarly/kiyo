@@ -34,10 +34,23 @@ void main()
 
     vec2 pos = vec2( float( p.x ) / float( screenSize.x ), float( p.y ) / float( screenSize.y ) ) - 0.5f;
 
-    if( constants.time < 0.3f )
+    if( fract( constants.time / 20. ) < 0.06f )
     {
-        float t = constants.time * .1f + 0.5f * length( pos );
-        vec3 color = palette( t, vec3( 0.5, 0.5, 0.5 ), vec3( 0.5, 0.5, 0.5 ), vec3( 2.0, 1.0, 0.0 ), vec3( 0.5, 0.20, 0.25 ) );
+        float t = constants.time * .3f + 0.5f * length( pos );
+        vec3 color = palette(
+            sin( pos.x * .2f / pos.y ) * 10.0f + constants.time,
+            vec3( 2.5, 1.1, 0.3 ),
+            vec3( 0.5, 0.5, 0.5 ),
+            vec3( 2.0, 0.5, 0.5 ),
+            vec3( 0.5, 0.30, 0.25 )
+        );
+
+        if( length( pos ) < 0.1f )
+        {
+            color = vec3( 1.0, 1.0, 1.0 );
+        }
+
+        color.r = cos( pos.x * sin( 2. * pos.y ) );
         imageStore( images[ constants.out_image ], p, vec4( color, 1 ) );
     }
 }
