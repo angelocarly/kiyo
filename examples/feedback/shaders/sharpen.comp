@@ -43,7 +43,7 @@ void main()
     center /= total;
     corner /= total;
 
-    vec3 kernel[25] = {
+    vec3 kernel[9] = {
         corner, edge, corner,
         edge, center, edge,
         corner, edge, corner
