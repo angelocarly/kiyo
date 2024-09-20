@@ -2,12 +2,13 @@ use std::collections::HashMap;
 use std::mem::size_of;
 
 use ash::vk;
+use ash::vk::{ImageAspectFlags, ImageSubresourceLayers, Offset3D};
 use glam::{UVec2, UVec3};
 use log::error;
 use slotmap::DefaultKey;
 
 use crate::graphics::{PipelineConfig, Renderer};
-use crate::graphics::renderer::PushConstants;
+use crate::graphics::renderer::{PushConstants, RenderComponent};
 use crate::vulkan::{CommandBuffer, DescriptorSetLayout, Image};
 use crate::vulkan::PipelineErr;
 
@@ -169,5 +170,184 @@ impl DrawOrchestrator {
             image_resources,
             passes
         })
+    }
+}
+
+impl RenderComponent for DrawOrchestrator {
+    fn render(&self, renderer: &Renderer, command_buffer: &mut CommandBuffer, swapchain_image: &vk::Image) {
+        for i in &self.image_resources {
+            renderer.transition_image(
+                &command_buffer,
+                &i.image.handle(),
+                vk::ImageLayout::GENERAL,
+                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                vk::PipelineStageFlags::TOP_OF_PIPE,
+                vk::PipelineStageFlags::TRANSFER,
+                vk::AccessFlags::NONE,
+                vk::AccessFlags::TRANSFER_WRITE
+            );
+
+            match &i.clear {
+                ClearConfig::None => {},
+                ClearConfig::Color(r,g,b) => {
+                    unsafe {
+                        renderer.device.handle()
+                            .cmd_clear_color_image(
+                                command_buffer.handle(),
+                                *i.image.handle(),
+                                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                                &vk::ClearColorValue {
+                                    float32: [*r, *g, *b, 1f32]
+                                },
+                                &[vk::ImageSubresourceRange {
+                                    aspect_mask: ImageAspectFlags::COLOR,
+                                    base_mip_level: 0,
+                                    level_count: 1,
+                                    base_array_layer: 0,
+                                    layer_count: 1,
+                                }]
+                            );
+                    }
+                }
+            }
+
+            renderer.transition_image(
+                &command_buffer,
+                &i.image.handle(),
+                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                vk::ImageLayout::GENERAL,
+                vk::PipelineStageFlags::TRANSFER,
+                vk::PipelineStageFlags::COMPUTE_SHADER,
+                vk::AccessFlags::TRANSFER_WRITE,
+                vk::AccessFlags::SHADER_WRITE
+            );
+        }
+
+        // Compute images
+        let current_time = renderer.start_time.elapsed().as_secs_f32();
+        for p in &self.passes {
+            if let Some(pipeline) = renderer.pipeline_store.get(p.pipeline_handle) {
+                command_buffer.bind_pipeline(&pipeline);
+                let push_constants = PushConstants {
+                    time: current_time,
+                    in_image: p.in_images.first().map(|&x| x as i32).unwrap_or(-1),
+                    out_image: p.out_images.first().map(|&x| x as i32).unwrap_or(-1),
+                };
+                command_buffer.push_constants(&pipeline, vk::ShaderStageFlags::COMPUTE, 0, &bytemuck::cast_slice(std::slice::from_ref(&push_constants)));
+                command_buffer.bind_push_descriptor_images(
+                    &pipeline,
+                    &self.image_resources.iter().map(|r| {
+                        &r.image
+                    }).collect::<Vec<&Image>>()
+                );
+                command_buffer.dispatch(p.dispatches.x, p.dispatches.y, p.dispatches.z);
+            }
+
+            // TODO: Add synchronization between passes
+        };
+
+        // Copy to swapchain
+
+        let output_image = &self.image_resources.last().expect("No images found to output").image;
+
+        renderer.transition_image(
+            &command_buffer,
+            &output_image.image,
+            vk::ImageLayout::GENERAL,
+            vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
+            vk::PipelineStageFlags::TRANSFER,
+            vk::PipelineStageFlags::TRANSFER,
+            vk::AccessFlags::TRANSFER_WRITE,
+            vk::AccessFlags::TRANSFER_READ
+        );
+
+
+        // Transition the swapchain image
+        renderer.transition_image(
+            &command_buffer,
+            &swapchain_image,
+            vk::ImageLayout::PRESENT_SRC_KHR,
+            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+            vk::PipelineStageFlags::TOP_OF_PIPE,
+            vk::PipelineStageFlags::TRANSFER,
+            vk::AccessFlags::NONE,
+            vk::AccessFlags::TRANSFER_WRITE
+        );
+
+        unsafe {
+
+            renderer.device.handle().cmd_clear_color_image(
+                command_buffer.handle(),
+                *swapchain_image,
+                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                &vk::ClearColorValue {
+                    float32: [0.0, 0.0, 0.0, 1.0]
+                },
+                &[vk::ImageSubresourceRange {
+                    aspect_mask: ImageAspectFlags::COLOR,
+                    base_mip_level: 0,
+                    level_count: 1,
+                    base_array_layer: 0,
+                    layer_count: 1,
+                }]
+            );
+
+            // Use a blit, as a copy doesn't synchronize properly to the swapchain on MoltenVK
+            renderer.device.handle().cmd_blit_image(
+                command_buffer.handle(),
+                output_image.image,
+                vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
+                *swapchain_image,
+                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                &[vk::ImageBlit::default()
+                    .src_offsets([
+                        Offset3D::default(),
+                        Offset3D::default().x(output_image.width as i32).y(output_image.height as i32).z(1)
+                    ])
+                    .dst_offsets([
+                        Offset3D::default(),
+                        Offset3D::default().x(output_image.width as i32).y(output_image.height as i32).z(1)
+                    ])
+                    .src_subresource(
+                        ImageSubresourceLayers::default()
+                            .aspect_mask(ImageAspectFlags::COLOR)
+                            .base_array_layer(0)
+                            .layer_count(1)
+                            .mip_level(0)
+                    )
+                    .dst_subresource(
+                        ImageSubresourceLayers::default()
+                            .aspect_mask(ImageAspectFlags::COLOR)
+                            .base_array_layer(0)
+                            .layer_count(1)
+                            .mip_level(0)
+                    )
+                ],
+                vk::Filter::NEAREST,
+            );
+        }
+
+        // Transfer back to default states
+        renderer.transition_image(
+            &command_buffer,
+            &swapchain_image,
+            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+            vk::ImageLayout::PRESENT_SRC_KHR,
+            vk::PipelineStageFlags::TRANSFER,
+            vk::PipelineStageFlags::BOTTOM_OF_PIPE,
+            vk::AccessFlags::TRANSFER_WRITE,
+            vk::AccessFlags::NONE
+        );
+
+        renderer.transition_image(
+            &command_buffer,
+            &output_image.image,
+            vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
+            vk::ImageLayout::GENERAL,
+            vk::PipelineStageFlags::TRANSFER,
+            vk::PipelineStageFlags::BOTTOM_OF_PIPE,
+            vk::AccessFlags::TRANSFER_READ,
+            vk::AccessFlags::NONE
+        );
     }
 }
