@@ -24,15 +24,15 @@ unsafe extern "system" fn vulkan_debug_utils_callback(
     let types = match message_type {
         vk::DebugUtilsMessageTypeFlagsEXT::GENERAL => "",
         vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE => "",
-        vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION => "[Validation]",
+        vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION => "[Validation] ",
         _ => "",
     };
     let message = CStr::from_ptr((*p_callback_data).p_message).to_str().unwrap();
     match message_severity {
-        vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => debug!(target: LOG_TARGET, "{} {}", types, message),
-        vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => warn!(target: LOG_TARGET, "{} {}", types, message),
-        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => error!(target: LOG_TARGET, "{} {}", types, message),
-        vk::DebugUtilsMessageSeverityFlagsEXT::INFO => info!(target: LOG_TARGET, "{} {}", types, message),
+        vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => debug!(target: LOG_TARGET, "{}{}", types, message),
+        vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => warn!(target: LOG_TARGET, "{}{}", types, message),
+        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => error!(target: LOG_TARGET, "{}{}", types, message),
+        vk::DebugUtilsMessageSeverityFlagsEXT::INFO => info!(target: LOG_TARGET, "{}{}", types, message),
         _ => warn!("{} {}", types, message),
     };
 
