@@ -1,21 +1,28 @@
 use std::collections::HashMap;
 use std::mem::size_of;
-
 use ash::vk;
 use ash::vk::{ImageAspectFlags, ImageSubresourceLayers, Offset3D};
+use bytemuck::{Pod, Zeroable};
+use cen::graphics::pipeline_store::PipelineConfig;
+use cen::graphics::Renderer;
+use cen::graphics::renderer::RenderComponent;
+use cen::vulkan::{CommandBuffer, DescriptorSetLayout, Image, PipelineErr};
 use glam::{UVec2, UVec3};
 use log::error;
 use slotmap::DefaultKey;
-
-use crate::graphics::{PipelineConfig, Renderer};
-use crate::graphics::renderer::{PushConstants, RenderComponent};
-use crate::vulkan::{CommandBuffer, DescriptorSetLayout, Image};
-use crate::vulkan::PipelineErr;
 
 pub enum DispatchConfig
 {
     Count( u32, u32, u32 ),
     FullScreen,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+pub struct PushConstants {
+    pub time: f32,
+    pub in_image: i32,
+    pub out_image: i32,
 }
 
 pub struct Pass {
@@ -138,7 +145,7 @@ impl DrawOrchestrator {
         let passes = draw_config.passes
             .iter()
             .map(|c| {
-                let pipeline_handle = renderer.pipeline_store.insert(
+                let pipeline_handle = renderer.pipeline_store().insert(
                     PipelineConfig {
                         shader_path: c.shader.clone().into(),
                         descriptor_set_layouts: vec![compute_descriptor_set_layout.clone()],
@@ -174,7 +181,8 @@ impl DrawOrchestrator {
 }
 
 impl RenderComponent for DrawOrchestrator {
-    fn render(&self, renderer: &Renderer, command_buffer: &mut CommandBuffer, swapchain_image: &vk::Image) {
+    fn render(&self, renderer: &mut Renderer, command_buffer: &mut CommandBuffer, swapchain_image: &vk::Image) {
+
         for i in &self.image_resources {
             renderer.transition_image(
                 &command_buffer,
@@ -226,7 +234,7 @@ impl RenderComponent for DrawOrchestrator {
         // Compute images
         let current_time = renderer.start_time.elapsed().as_secs_f32();
         for p in &self.passes {
-            if let Some(pipeline) = renderer.pipeline_store.get(p.pipeline_handle) {
+            if let Some(pipeline) = renderer.pipeline_store().get(p.pipeline_handle) {
                 command_buffer.bind_pipeline(&pipeline);
                 let push_constants = PushConstants {
                     time: current_time,
@@ -252,7 +260,7 @@ impl RenderComponent for DrawOrchestrator {
 
         renderer.transition_image(
             &command_buffer,
-            &output_image.image,
+            &output_image.handle(),
             vk::ImageLayout::GENERAL,
             vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
             vk::PipelineStageFlags::TRANSFER,
@@ -295,7 +303,7 @@ impl RenderComponent for DrawOrchestrator {
             // Use a blit, as a copy doesn't synchronize properly to the swapchain on MoltenVK
             renderer.device.handle().cmd_blit_image(
                 command_buffer.handle(),
-                output_image.image,
+                *output_image.handle(),
                 vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
                 *swapchain_image,
                 vk::ImageLayout::TRANSFER_DST_OPTIMAL,
@@ -341,7 +349,7 @@ impl RenderComponent for DrawOrchestrator {
 
         renderer.transition_image(
             &command_buffer,
-            &output_image.image,
+            output_image.handle(),
             vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
             vk::ImageLayout::GENERAL,
             vk::PipelineStageFlags::TRANSFER,
