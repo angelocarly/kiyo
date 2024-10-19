@@ -48,13 +48,8 @@ Then you should be able to launch your kiyo application and capture a frame.
 [This video](https://www.youtube.com/watch?v=uNB4RMZg1AM) does a nice job explaining the process.
 
 ## References
-- [myndgera](https://github.com/pudnax/myndgera) - Pipeline caching and reloading
-- [paya](https://github.com/paratym/paya) - Vulkan memory dependencies and ash wrappers
 - [sound-shader](https://github.com/ytanimura/sound-shader) - Cpal wrapper code and shader audio inspiration
 
 ## Libraries
+- [cen](https://github.com/angelocarly/cen) - Window management and Vulkan wrappers
 - [ash](https://github.com/ash-rs/ash) - Vulkan bindings
-- [winit](https://github.com/rust-windowing/winit) - Window creation and handling
-- [shaderc](https://github.com/google/shaderc-rs) - Shader compilation
-- [gpu-allocator](https://github.com/Traverse-Research/gpu-allocator?tab=readme-ov-file) - Memory management
-- [notify](https://github.com/notify-rs/notify) - File watching
