@@ -37,5 +37,5 @@ fn main() {
 
         (a, b)
     }
-    app.run(config, Option::Some(audio_shader));
+    app.run(config, Some(audio_shader));
 }

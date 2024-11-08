@@ -1,6 +1,7 @@
 use crate::app::StreamFactory;
 use crate::app::draw_orch::{DrawConfig};
 use cen::app::app::AppConfig;
+use cpal::Stream;
 use glam::UVec2;
 use log::{error, info};
 use cpal::traits::StreamTrait;
@@ -8,6 +9,37 @@ use crate::app::{DrawOrchestrator};
 
 pub struct App {
     pub cen: cen::app::App,
+}
+
+struct AudioPlayer {
+    stream: Stream,
+}
+
+impl AudioPlayer {
+    fn new(func: fn(f32)->(f32, f32)) -> Self {
+        let sf = StreamFactory::default_factory().unwrap();
+
+        let sample_rate = sf.config().sample_rate.0;
+        let mut sample_clock = 0;
+        let routin = Box::new(move |len: usize| -> Vec<f32> {
+            (0..len / 2) // len is apparently left *and* right
+                .flat_map(|_| {
+                    sample_clock = (sample_clock + 1) % sample_rate;
+
+                    let (l, r) = func(sample_clock as f32 / sample_rate as f32);
+                    vec![l, r]
+                })
+                .collect()
+        });
+
+        Self {
+            stream: sf.create_stream(routin).unwrap() // creates stream from function "routin"
+        }
+    }
+
+    fn play(&self) {
+        StreamTrait::play(&self.stream).unwrap();
+    }
 }
 
 impl App {
@@ -34,28 +66,14 @@ impl App {
         };
 
         // audio
-
-        if let Some(audio_func) = audio_func {
-
-            let sf = StreamFactory::default_factory().unwrap();
-
-            let sample_rate = sf.config().sample_rate.0;
-            let mut sample_clock = 0;
-            let routin = move |len: usize| -> Vec<f32> {
-                (0..len / 2) // len is apparently left *and* right
-                    .flat_map(|_| {
-                        sample_clock = (sample_clock + 1) % sample_rate;
-
-                        let (l, r) = audio_func(sample_clock as f32 / sample_rate as f32);
-                        vec![l, r]
-                    })
-                    .collect()
-            };
-
-            let stream = sf.create_stream(routin).unwrap();
-            StreamTrait::play(&stream).unwrap();
+        let player = audio_func.map(|f| {
+            AudioPlayer::new(f)
+        });
+        if let Some(p) = &player {
+            p.play();
         }
 
+        // Run graphics backend
         self.cen.run(Box::new(orchestrator));
     }
 }
