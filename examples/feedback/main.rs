@@ -1,5 +1,5 @@
-use cen::app::app::AppConfig;
 use kiyo::app::App;
+use kiyo::app::app::AppConfig;
 use kiyo::app::draw_orch::{ClearConfig, DispatchConfig, DrawConfig, ImageConfig, Pass};
 
 fn main() {

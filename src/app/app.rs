@@ -1,6 +1,5 @@
 use crate::app::StreamFactory;
 use crate::app::draw_orch::{DrawConfig};
-use cen::app::app::AppConfig;
 use cpal::Stream;
 use glam::UVec2;
 use log::{error, info};
@@ -42,11 +41,23 @@ impl AudioPlayer {
     }
 }
 
+pub struct AppConfig {
+    pub width: u32,
+    pub height: u32,
+    pub vsync: bool,
+    pub log_fps: bool,
+}
+
 impl App {
 
     pub fn new(app_config: AppConfig) -> App{
         App {
-            cen: cen::app::App::new(app_config),
+            cen: cen::app::App::new(cen::app::app::AppConfig {
+                width: app_config.width,
+                height: app_config.height,
+                vsync: app_config.vsync,
+                log_fps: app_config.log_fps,
+            }),
         }
     }
 
