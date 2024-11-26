@@ -3,7 +3,7 @@ use std::mem::size_of;
 use ash::vk;
 use ash::vk::{ImageAspectFlags, ImageSubresourceLayers, Offset3D};
 use bytemuck::{Pod, Zeroable};
-use cen::graphics::pipeline_store::PipelineConfig;
+use cen::graphics::pipeline_store::{PipelineConfig, PipelineKey};
 use cen::graphics::Renderer;
 use cen::graphics::renderer::RenderComponent;
 use cen::vulkan::{CommandBuffer, DescriptorSetLayout, Image, PipelineErr};
@@ -52,7 +52,7 @@ pub struct ShaderPass {
     pub dispatches: glam::UVec3,
     pub in_images: Vec<u32>,
     pub out_images: Vec<u32>,
-    pub pipeline_handle: DefaultKey,
+    pub pipeline_handle: PipelineKey,
 }
 
 pub struct ImageResource {
@@ -64,18 +64,30 @@ pub struct ImageResource {
  *  Contains all render related structures relating to a config.
  */
 pub struct DrawOrchestrator {
-    pub compute_descriptor_set_layout: DescriptorSetLayout,
-    pub image_resources: Vec<ImageResource>,
-    pub passes: Vec<ShaderPass>,
+    draw_config: DrawConfig,
+    pub compute_descriptor_set_layout: Option<DescriptorSetLayout>,
+    pub image_resources: Option<Vec<ImageResource>>,
+    pub passes: Option<Vec<ShaderPass>>,
 }
 
 impl DrawOrchestrator {
-    pub fn new(renderer: &mut Renderer, resolution: UVec2, draw_config: &DrawConfig) -> Result<DrawOrchestrator, PipelineErr> {
+    pub fn new(draw_config: DrawConfig) -> DrawOrchestrator {
+        Self {
+            draw_config,
+            compute_descriptor_set_layout: None,
+            image_resources: None,
+            passes: None,
+        }
+    }
+}
 
-        let image_count = draw_config.images.len() as u32;
+impl RenderComponent for DrawOrchestrator {
+    fn initialize(&mut self, renderer: &mut Renderer)
+    {
+        let image_count = self.draw_config.images.len() as u32;
 
         // Verify max referred index
-        let max_reffered_image = draw_config.passes.iter()
+        let max_reffered_image = self.draw_config.passes.iter()
             .map(|p| p.output_resources.iter())
             .flatten().max().unwrap_or(&0);
         if *max_reffered_image as i32 > image_count as i32 - 1 {
@@ -97,12 +109,12 @@ impl DrawOrchestrator {
         );
 
         // Images
-        let image_resources = draw_config.images.iter().map(|c| {
+        let image_resources = self.draw_config.images.iter().map(|c| {
             let image = Image::new(
                 &renderer.device,
                 &mut renderer.allocator,
-                resolution.x,
-                resolution.y,
+                renderer.swapchain.get_extent().width,
+                renderer.swapchain.get_extent().height,
                 vk::ImageUsageFlags::STORAGE | vk::ImageUsageFlags::TRANSFER_SRC | vk::ImageUsageFlags::TRANSFER_DST
             );
 
@@ -132,8 +144,8 @@ impl DrawOrchestrator {
 
         let workgroup_size = 32;
         let full_screen_dispatches = UVec3::new(
-            (resolution.x as f32 / workgroup_size as f32).ceil() as u32,
-            (resolution.y as f32 / workgroup_size as f32).ceil() as u32,
+            (renderer.swapchain.get_extent().width as f32 / workgroup_size as f32).ceil() as u32,
+            (renderer.swapchain.get_extent().height as f32 / workgroup_size as f32).ceil() as u32,
             1
         );
 
@@ -142,7 +154,7 @@ impl DrawOrchestrator {
         macros.insert("WORKGROUP_SIZE".to_string(), workgroup_size.to_string());
 
         // Passes
-        let passes = draw_config.passes
+        let passes = self.draw_config.passes
             .iter()
             .map(|c| {
                 let pipeline_handle = renderer.pipeline_store().insert(
@@ -170,20 +182,17 @@ impl DrawOrchestrator {
                     out_images: c.output_resources.clone(),
                 })
             })
-            .collect::<Result<Vec<ShaderPass>, PipelineErr>>()?;
+            .collect::<Result<Vec<ShaderPass>, PipelineErr>>()
+            .expect("Failed to create shader pass");
 
-        Ok(DrawOrchestrator {
-            compute_descriptor_set_layout,
-            image_resources,
-            passes
-        })
+        self.compute_descriptor_set_layout = Some(compute_descriptor_set_layout);
+        self.image_resources = Some(image_resources);
+        self.passes = Some(passes);
     }
-}
 
-impl RenderComponent for DrawOrchestrator {
-    fn render(&self, renderer: &mut Renderer, command_buffer: &mut CommandBuffer, swapchain_image: &vk::Image) {
+    fn render(&mut self, renderer: &mut Renderer, command_buffer: &mut CommandBuffer, swapchain_image: &vk::Image) {
 
-        for i in &self.image_resources {
+        for i in self.image_resources.as_ref().unwrap() {
             renderer.transition_image(
                 &command_buffer,
                 &i.image.handle(),
@@ -233,7 +242,7 @@ impl RenderComponent for DrawOrchestrator {
 
         // Compute images
         let current_time = renderer.start_time.elapsed().as_secs_f32();
-        for p in &self.passes {
+        for p in self.passes.as_ref().unwrap() {
             if let Some(pipeline) = renderer.pipeline_store().get(p.pipeline_handle) {
                 command_buffer.bind_pipeline(&pipeline);
                 let push_constants = PushConstants {
@@ -244,7 +253,7 @@ impl RenderComponent for DrawOrchestrator {
                 command_buffer.push_constants(&pipeline, vk::ShaderStageFlags::COMPUTE, 0, &bytemuck::cast_slice(std::slice::from_ref(&push_constants)));
                 command_buffer.bind_push_descriptor_images(
                     &pipeline,
-                    &self.image_resources.iter().map(|r| {
+                    &self.image_resources.as_ref().unwrap().iter().map(|r| {
                         &r.image
                     }).collect::<Vec<&Image>>()
                 );
@@ -256,7 +265,7 @@ impl RenderComponent for DrawOrchestrator {
 
         // Copy to swapchain
 
-        let output_image = &self.image_resources.last().expect("No images found to output").image;
+        let output_image = &self.image_resources.as_ref().unwrap().last().expect("No images found to output").image;
 
         renderer.transition_image(
             &command_buffer,

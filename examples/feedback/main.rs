@@ -4,12 +4,13 @@ use kiyo::app::draw_orch::{ClearConfig, DispatchConfig, DrawConfig, ImageConfig,
 
 fn main() {
 
-    let app = App::new(AppConfig {
+    let app_config = AppConfig {
         width: 1000,
         height: 1000,
         vsync: true,
         log_fps: false,
-    });
+        fullscreen: false,
+    };
 
     let config = DrawConfig {
         images: Vec::from([
@@ -42,5 +43,5 @@ fn main() {
         ])
     };
 
-    app.run(config, None);
+    App::run(app_config, config, None);
 }

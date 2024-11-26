@@ -46,35 +46,22 @@ pub struct AppConfig {
     pub height: u32,
     pub vsync: bool,
     pub log_fps: bool,
+    pub fullscreen: bool,
 }
 
 impl App {
 
-    pub fn new(app_config: AppConfig) -> App{
-        App {
-            cen: cen::app::App::new(cen::app::app::AppConfig {
-                width: app_config.width,
-                height: app_config.height,
-                vsync: app_config.vsync,
-                log_fps: app_config.log_fps,
-            }),
-        }
-    }
+    pub fn run(app_config: AppConfig, draw_config: DrawConfig, audio_func: Option<fn(f32)->(f32, f32)>) {
 
-    pub fn run(mut self, draw_config: DrawConfig, audio_func: Option<fn(f32)->(f32, f32)>) {
+        let cen_conf = cen::app::app::AppConfig::default()
+            .width(app_config.width)
+            .height(app_config.height)
+            .vsync(app_config.vsync)
+            .fullscreen(app_config.fullscreen)
+            .log_fps(app_config.log_fps);
 
         // Parse orchestrator
-        let resolution = UVec2::new( self.cen.window().get_extent().width, self.cen.window().get_extent().height );
-        let orchestrator = match DrawOrchestrator::new(&mut self.cen.renderer(), resolution, &draw_config) {
-            Ok(d) => {
-                d
-            },
-            Err(e) => {
-                error!("{}", e);
-                info!("A shader contains an error, quitting");
-                std::process::abort();
-            }
-        };
+        let orchestrator = DrawOrchestrator::new(draw_config);
 
         // audio
         let player = audio_func.map(|f| {
@@ -85,6 +72,6 @@ impl App {
         }
 
         // Run graphics backend
-        self.cen.run(Box::new(orchestrator));
+        cen::app::App::run(cen_conf, Box::new(orchestrator));
     }
 }

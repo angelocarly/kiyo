@@ -3,12 +3,13 @@ use kiyo::app::draw_orch::{ClearConfig, DrawConfig, ImageConfig};
 
 fn main() {
 
-    let app = App::new(AppConfig {
+    let app_config = AppConfig {
         width: 1000,
         height: 1000,
         vsync: true,
         log_fps: false,
-    });
+        fullscreen: false,
+    };
 
     // Display a single image cleared to yellow
     let config = DrawConfig {
@@ -21,5 +22,5 @@ fn main() {
         ])
     };
 
-    app.run(config, None);
+    App::run(app_config, config, None);
 }

@@ -3,12 +3,13 @@ use kiyo::app::draw_orch::{ClearConfig, DispatchConfig, DrawConfig, ImageConfig,
 
 fn main() {
 
-    let app = App::new(AppConfig {
+    let app_config = AppConfig {
         width: 1000,
         height: 1000,
+        fullscreen: false,
         vsync: true,
         log_fps: false,
-    });
+    };
 
     let config = DrawConfig {
         images: Vec::from([
@@ -36,5 +37,5 @@ fn main() {
 
         (a, b)
     }
-    app.run(config, Some(audio_shader));
+    App::run(app_config, config, Some(audio_shader));
 }
