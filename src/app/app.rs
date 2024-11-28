@@ -1,5 +1,7 @@
 use crate::app::StreamFactory;
 use crate::app::draw_orch::{DrawConfig};
+use crate::app::audio_orch::{AudioConfig};
+use crate::app::audio_orch::AudioConfig::{AudioFile, Program, None};
 use cpal::Stream;
 use glam::UVec2;
 use log::{error, info};
@@ -51,7 +53,7 @@ pub struct AppConfig {
 
 impl App {
 
-    pub fn run(app_config: AppConfig, draw_config: DrawConfig, audio_func: Option<fn(f32)->(f32, f32)>) {
+    pub fn run(app_config: AppConfig, draw_config: DrawConfig, audio_config: AudioConfig) {
 
         let cen_conf = cen::app::app::AppConfig::default()
             .width(app_config.width)
@@ -61,12 +63,14 @@ impl App {
             .log_fps(app_config.log_fps);
 
         // Parse orchestrator
-        let orchestrator = DrawOrchestrator::new(draw_config);
+        let orchestrator = DrawOrchestrator::new(draw_config, audio_config.clone());
 
-        // audio
-        let player = audio_func.map(|f| {
-            AudioPlayer::new(f)
-        });
+        // audio program (not synced to render time like audio file?)
+        let player:Option<AudioPlayer> = match audio_config {
+            Program(program) => Some(AudioPlayer::new(program)),
+            AudioFile(_) => Option::None,
+            None => Option::None
+        };
         if let Some(p) = &player {
             p.play();
         }

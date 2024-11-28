@@ -1,5 +1,6 @@
 use kiyo::app::app::{App, AppConfig};
 use kiyo::app::draw_orch::{ClearConfig, DispatchConfig, DrawConfig, ImageConfig, Pass};
+use kiyo::app::audio_orch::{AudioConfig};
 
 fn main() {
 
@@ -27,5 +28,5 @@ fn main() {
         ])
     };
 
-    App::run(app_config, config, None);
+    App::run(app_config, config, AudioConfig::None);
 }

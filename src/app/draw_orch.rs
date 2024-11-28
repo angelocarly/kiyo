@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::mem::size_of;
+use std::process::Output;
 use ash::vk;
 use ash::vk::{ImageAspectFlags, ImageSubresourceLayers, Offset3D};
 use bytemuck::{Pod, Zeroable};
@@ -10,6 +11,12 @@ use cen::vulkan::{CommandBuffer, DescriptorSetLayout, Image, PipelineErr};
 use glam::{UVec2, UVec3};
 use log::error;
 use slotmap::DefaultKey;
+use crate::app::audio_orch::{AudioConfig};
+use crate::app::audio_orch::AudioConfig::AudioFile;
+use std::fs::File;
+use std::io::BufReader;
+use rodio::{Decoder, OutputStream, Sink};
+use core::time::{Duration};
 
 pub enum DispatchConfig
 {
@@ -65,15 +72,21 @@ pub struct ImageResource {
  */
 pub struct DrawOrchestrator {
     draw_config: DrawConfig,
+    audio_config: AudioConfig,
+    audio_stream: Option<OutputStream>,
+    sink: Option<Sink>,
     pub compute_descriptor_set_layout: Option<DescriptorSetLayout>,
     pub image_resources: Option<Vec<ImageResource>>,
     pub passes: Option<Vec<ShaderPass>>,
 }
 
 impl DrawOrchestrator {
-    pub fn new(draw_config: DrawConfig) -> DrawOrchestrator {
+    pub fn new(draw_config: DrawConfig, audio_config: AudioConfig) -> DrawOrchestrator {
         Self {
             draw_config,
+            audio_config,
+            audio_stream: None,
+            sink: None,
             compute_descriptor_set_layout: None,
             image_resources: None,
             passes: None,
@@ -188,6 +201,20 @@ impl RenderComponent for DrawOrchestrator {
         self.compute_descriptor_set_layout = Some(compute_descriptor_set_layout);
         self.image_resources = Some(image_resources);
         self.passes = Some(passes);
+
+        // Audio things
+        if let AudioFile(file) = self.audio_config.clone() {
+            let (stream, stream_handle) = OutputStream::try_default().unwrap();
+            self.audio_stream = Some(stream);
+            self.sink = Some(Sink::try_new(&stream_handle).unwrap());
+            // Load a sound from a file, using a path relative to Cargo.toml
+            let file = BufReader::new(File::open(file).unwrap());
+            // Decode that sound file into a source
+            let source = Decoder::new(file).unwrap();
+
+            self.sink.as_ref().map(|sink| Sink::append(sink, source));
+            self.sink.as_ref().map(|sink| Sink::play(sink));
+        };
     }
 
     fn render(&mut self, renderer: &mut Renderer, command_buffer: &mut CommandBuffer, swapchain_image: &vk::Image) {
@@ -262,6 +289,15 @@ impl RenderComponent for DrawOrchestrator {
 
             // TODO: Add synchronization between passes
         };
+
+        self.sink.as_ref().map(|sink| {
+            let seekhead = sink.get_pos();
+            let render_time = renderer.start_time.elapsed();
+
+            if seekhead.abs_diff(render_time) > Duration::from_secs_f32(0.05) {
+                _ = Sink::try_seek(sink, render_time);
+            }
+        });
 
         // Copy to swapchain
 
