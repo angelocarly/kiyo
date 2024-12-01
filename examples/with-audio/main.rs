@@ -1,7 +1,9 @@
 use kiyo::app::app::{App, AppConfig};
 use kiyo::app::draw_orch::{ClearConfig, DispatchConfig, DrawConfig, ImageConfig, Pass};
+use kiyo::app::audio_orch::{AudioConfig};
 
 fn main() {
+    const USE_FILE:bool = true;
 
     let app_config = AppConfig {
         width: 1000,
@@ -37,5 +39,8 @@ fn main() {
 
         (a, b)
     }
-    App::run(app_config, config, Some(audio_shader));
+    App::run(app_config, config, if USE_FILE 
+        {AudioConfig::AudioFile("examples/with-audio/sample.wav".to_string())} else 
+        {AudioConfig::Program(audio_shader)}
+    );
 }
