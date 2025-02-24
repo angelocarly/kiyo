@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::mem::size_of;
 use std::process::Output;
 use ash::vk;
-use ash::vk::{ImageAspectFlags, ImageSubresourceLayers, Offset3D};
+use ash::vk::{BufferImageCopy, BufferUsageFlags, DeviceSize, Extent3D, ImageAspectFlags, ImageLayout, ImageSubresourceLayers, Offset3D};
 use bytemuck::{Pod, Zeroable};
 use cen::graphics::pipeline_store::{PipelineConfig, PipelineKey};
 use cen::graphics::Renderer;
 use cen::graphics::renderer::RenderComponent;
-use cen::vulkan::{CommandBuffer, DescriptorSetLayout, Image, PipelineErr};
+use cen::vulkan::{Buffer, CommandBuffer, DescriptorSetLayout, Image, PipelineErr};
 use glam::{UVec2, UVec3};
 use log::error;
 use slotmap::DefaultKey;
@@ -17,9 +17,12 @@ use std::fs::File;
 use std::io::BufReader;
 use rodio::{Decoder, OutputStream, Sink};
 use core::time::{Duration};
+use std::ops::Add;
 use cen::app::gui::GuiComponent;
 use egui::{menu, Context, TopBottomPanel, Vec2, Window};
 use egui::WidgetType::TextEdit;
+use gpu_allocator::MemoryLocation;
+use crate::app::png::{write_png_image, Color, ColorSink};
 
 pub enum DispatchConfig
 {
@@ -74,8 +77,9 @@ struct ImgExport {
     width_text: String,
     height_text: String,
     filename: String,
-    width: u32,
-    height: u32,
+    do_export: bool,
+    render_counter: u32,
+    buffer: Option<Buffer>
 }
 
 /**
@@ -102,7 +106,14 @@ impl DrawOrchestrator {
             compute_descriptor_set_layout: None,
             image_resources: None,
             passes: None,
-            image_export: ImgExport { filename: "".to_string(), width_text: "".to_string(), height_text: "".to_string(), width: 1024, height: 1024 },
+            image_export: ImgExport {
+                do_export: false,
+                render_counter: 0,
+                filename: "output".to_string(),
+                width_text: "".to_string(),
+                height_text: "".to_string(),
+                buffer: None
+            },
         }
     }
 }
@@ -116,8 +127,11 @@ impl GuiComponent for DrawOrchestrator {
                     // ui.add(egui::TextEdit::singleline(&mut self.image_export.width_text));
                     // ui.label("Height");
                     // ui.add(egui::TextEdit::singleline(&mut self.image_export.height_text));
-                    // ui.label("Filename");
-                    // ui.add(egui::TextEdit::singleline(&mut self.image_export.filename));
+                    ui.label("Filename");
+                    ui.add(egui::TextEdit::singleline(&mut self.image_export.filename));
+                    if ui.button("Save").clicked() {
+                        self.image_export.do_export = true;
+                    }
                 });
             });
         });
@@ -408,6 +422,45 @@ impl RenderComponent for DrawOrchestrator {
                 ],
                 vk::Filter::NEAREST,
             );
+        }
+
+        // Image export
+        if self.image_export.do_export {
+            if self.image_export.buffer.is_none() {
+                self.image_export.render_counter = 0;
+                self.image_export.buffer = Some(Buffer::new(
+                    &renderer.device,
+                    &mut renderer.allocator,
+                    MemoryLocation::GpuToCpu,
+                    (size_of::<u8>() as u32 * 4 * output_image.width * output_image.height) as DeviceSize,
+                    BufferUsageFlags::STORAGE_BUFFER | BufferUsageFlags::TRANSFER_DST
+                ));
+
+                command_buffer.copy_image_to_buffer(output_image, ImageLayout::TRANSFER_SRC_OPTIMAL, self.image_export.buffer.as_ref().unwrap(),
+                &[
+                    BufferImageCopy::default()
+                        .buffer_image_height(output_image.height)
+                        .buffer_offset(0)
+                        .image_extent(Extent3D::default().width(output_image.width).height(output_image.height).depth(1))
+                        .image_offset(Offset3D::default())
+                        .image_subresource(ImageSubresourceLayers::default()
+                            .layer_count(1)
+                            .mip_level(0)
+                            .aspect_mask(ImageAspectFlags::COLOR)
+                            .base_array_layer(0)
+                        )
+                ]);
+            } else {
+                self.image_export.render_counter = self.image_export.render_counter + 1;
+                // Be sure the buffer is no longer in use
+                if self.image_export.render_counter > 5 {
+                    let mut buffer = self.image_export.buffer.take().unwrap();
+                    let memory = buffer.mapped();
+                    let output_file = self.image_export.filename.clone().add(".png");
+                    write_png_image(memory, output_image.width, output_image.height, output_file.as_str());
+                    self.image_export.do_export = false;
+                }
+            }
         }
 
         // Transfer back to default states
