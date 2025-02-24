@@ -19,6 +19,7 @@ log = "0.4.22"
 bytemuck = { version = "1.17.0", features = ["derive"] }
 slotmap = "1.0.7"
 rodio = "0.20.1"
+egui = "0.30.0"
 
 [dev-dependencies]
 

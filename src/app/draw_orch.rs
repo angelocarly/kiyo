@@ -17,6 +17,9 @@ use std::fs::File;
 use std::io::BufReader;
 use rodio::{Decoder, OutputStream, Sink};
 use core::time::{Duration};
+use cen::app::gui::GuiComponent;
+use egui::{menu, Context, TopBottomPanel, Vec2, Window};
+use egui::WidgetType::TextEdit;
 
 pub enum DispatchConfig
 {
@@ -67,6 +70,14 @@ pub struct ImageResource {
     pub clear: ClearConfig,
 }
 
+struct ImgExport {
+    width_text: String,
+    height_text: String,
+    filename: String,
+    width: u32,
+    height: u32,
+}
+
 /**
  *  Contains all render related structures relating to a config.
  */
@@ -78,6 +89,7 @@ pub struct DrawOrchestrator {
     pub compute_descriptor_set_layout: Option<DescriptorSetLayout>,
     pub image_resources: Option<Vec<ImageResource>>,
     pub passes: Option<Vec<ShaderPass>>,
+    image_export: ImgExport,
 }
 
 impl DrawOrchestrator {
@@ -90,7 +102,25 @@ impl DrawOrchestrator {
             compute_descriptor_set_layout: None,
             image_resources: None,
             passes: None,
+            image_export: ImgExport { filename: "".to_string(), width_text: "".to_string(), height_text: "".to_string(), width: 1024, height: 1024 },
         }
+    }
+}
+
+impl GuiComponent for DrawOrchestrator {
+    fn gui(&mut self, context: &Context) {
+        TopBottomPanel::top("top").show(context, |ui| {
+            menu::bar(ui, |ui| {
+                ui.menu_button("Export..", |ui| {
+                    // ui.label("Width");
+                    // ui.add(egui::TextEdit::singleline(&mut self.image_export.width_text));
+                    // ui.label("Height");
+                    // ui.add(egui::TextEdit::singleline(&mut self.image_export.height_text));
+                    // ui.label("Filename");
+                    // ui.add(egui::TextEdit::singleline(&mut self.image_export.filename));
+                });
+            });
+        });
     }
 }
 
