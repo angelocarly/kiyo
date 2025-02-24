@@ -1,3 +1,4 @@
+use std::sync::{Arc, Mutex};
 use crate::app::StreamFactory;
 use crate::app::draw_orch::{DrawConfig};
 use crate::app::audio_orch::{AudioConfig};
@@ -76,6 +77,6 @@ impl App {
         }
 
         // Run graphics backend
-        cen::app::App::run(cen_conf, Box::new(orchestrator));
+        cen::app::App::run(cen_conf, Arc::new(Mutex::new(orchestrator)), Option::None);
     }
 }

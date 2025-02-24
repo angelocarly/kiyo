@@ -12,7 +12,7 @@ categories = ["rendering::engine"]
 
 [dependencies]
 ash = { version = "0.38.0", features = ["linked"] }
-cen = { git = "https://github.com/angelocarly/cen.git" }
+cen = { git = "https://github.com/angelocarly/cen.git", rev = "e4f6be82d718c1838f8f2926ccc52bbc936e57a2" }
 cpal = "0.13.4"
 glam = "0.28.0"
 log = "0.4.22"

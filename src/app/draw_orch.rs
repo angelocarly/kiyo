@@ -217,7 +217,7 @@ impl RenderComponent for DrawOrchestrator {
         };
     }
 
-    fn render(&mut self, renderer: &mut Renderer, command_buffer: &mut CommandBuffer, swapchain_image: &vk::Image) {
+    fn render(&mut self, renderer: &mut Renderer, command_buffer: &mut CommandBuffer, swapchain_image: &vk::Image, view: &vk::ImageView) {
 
         for i in self.image_resources.as_ref().unwrap() {
             renderer.transition_image(
