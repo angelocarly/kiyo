@@ -77,6 +77,7 @@ impl App {
         }
 
         // Run graphics backend
-        cen::app::App::run(cen_conf, Arc::new(Mutex::new(orchestrator)), Option::None);
+        let orch = Arc::new(Mutex::new(orchestrator));
+        cen::app::App::run(cen_conf, orch.clone(), Some(orch));
     }
 }
