@@ -1,16 +1,14 @@
 use std::collections::HashMap;
 use std::mem::size_of;
-use std::process::Output;
 use ash::vk;
-use ash::vk::{BufferImageCopy, BufferUsageFlags, DeviceSize, Extent3D, ImageAspectFlags, ImageLayout, ImageSubresourceLayers, Offset3D};
+use ash::vk::{BufferImageCopy, BufferUsageFlags, DeviceSize, Extent3D, ImageAspectFlags, ImageLayout, ImageSubresourceLayers, ImageUsageFlags, Offset3D};
 use bytemuck::{Pod, Zeroable};
 use cen::graphics::pipeline_store::{PipelineConfig, PipelineKey};
 use cen::graphics::Renderer;
 use cen::graphics::renderer::RenderComponent;
 use cen::vulkan::{Buffer, CommandBuffer, DescriptorSetLayout, Image, PipelineErr};
-use glam::{UVec2, UVec3};
-use log::error;
-use slotmap::DefaultKey;
+use glam::{UVec3};
+use log::{error};
 use crate::app::audio_orch::{AudioConfig};
 use crate::app::audio_orch::AudioConfig::AudioFile;
 use std::fs::File;
@@ -19,10 +17,9 @@ use rodio::{Decoder, OutputStream, Sink};
 use core::time::{Duration};
 use std::ops::Add;
 use cen::app::gui::GuiComponent;
-use egui::{menu, Context, TopBottomPanel, Vec2, Window};
-use egui::WidgetType::TextEdit;
+use egui::{menu, Context, TopBottomPanel};
 use gpu_allocator::MemoryLocation;
-use crate::app::png::{write_png_image, Color, ColorSink};
+use crate::app::png::{write_png_image};
 
 pub enum DispatchConfig
 {
@@ -74,12 +71,10 @@ pub struct ImageResource {
 }
 
 struct ImgExport {
-    width_text: String,
-    height_text: String,
+    _width_text: String,
+    _height_text: String,
     filename: String,
     do_export: bool,
-    render_counter: u32,
-    buffer: Option<Buffer>
 }
 
 /**
@@ -108,12 +103,258 @@ impl DrawOrchestrator {
             passes: None,
             image_export: ImgExport {
                 do_export: false,
-                render_counter: 0,
                 filename: "output".to_string(),
-                width_text: "".to_string(),
-                height_text: "".to_string(),
-                buffer: None
+                _width_text: "".to_string(),
+                _height_text: "".to_string(),
             },
+        }
+    }
+
+    fn export(&mut self, renderer: &mut Renderer, width: u32, height: u32) {
+
+        let mut buffer = Buffer::new(
+            &renderer.device,
+            &mut renderer.allocator,
+            MemoryLocation::GpuToCpu,
+            (size_of::<u8>() as u32 * 4 * width * height) as DeviceSize,
+            BufferUsageFlags::STORAGE_BUFFER | BufferUsageFlags::TRANSFER_DST
+        );
+        let output_image = Image::new(
+            &renderer.device,
+            &mut renderer.allocator,
+            width,
+            height,
+            ImageUsageFlags::STORAGE | ImageUsageFlags::TRANSFER_DST | ImageUsageFlags::TRANSFER_SRC
+        );
+
+        let mut command_buffer = renderer.create_command_buffer();
+        command_buffer.begin();
+        {
+            self.do_render(renderer, &mut command_buffer, self.image_resources.as_ref().unwrap(), &output_image.handle(), ImageLayout::UNDEFINED, ImageLayout::TRANSFER_SRC_OPTIMAL);
+
+            command_buffer.copy_image_to_buffer(
+                &output_image,
+                ImageLayout::TRANSFER_SRC_OPTIMAL,
+                &buffer,
+                &[
+                    BufferImageCopy::default()
+                        .buffer_image_height(output_image.height)
+                        .buffer_offset(0)
+                        .image_extent(Extent3D::default().width(output_image.width).height(output_image.height).depth(1))
+                        .image_offset(Offset3D::default())
+                        .image_subresource(ImageSubresourceLayers::default()
+                            .layer_count(1)
+                            .mip_level(0)
+                            .aspect_mask(ImageAspectFlags::COLOR)
+                            .base_array_layer(0)
+                        )
+                ]
+            );
+        }
+        command_buffer.end();
+
+        let filename = self.image_export.filename.clone();
+        renderer.submit_single_time_command_buffer(command_buffer, Box::new(move || {
+            // TODO: This is to keep the image alive until submission, but that should happen automagically
+            let image = output_image;
+            image.handle();
+
+            // Write png
+            let memory = buffer.mapped();
+            let output_file = filename.clone().add(".png");
+            write_png_image(memory, width, height, output_file.as_str());
+        }));
+    }
+
+    /*
+     * Perform a compute writing to @target_image
+     */
+    fn do_render(&self, renderer: &mut Renderer, command_buffer: &mut CommandBuffer, image_resources: &Vec<ImageResource>, target_image: &vk::Image, src_layout: ImageLayout, dst_layout: ImageLayout) {
+
+        // Clear all images with a clear config
+        {
+            for i in image_resources {
+                renderer.transition_image(
+                    &command_buffer,
+                    &i.image.handle(),
+                    vk::ImageLayout::GENERAL,
+                    vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                    vk::PipelineStageFlags::TOP_OF_PIPE,
+                    vk::PipelineStageFlags::TRANSFER,
+                    vk::AccessFlags::NONE,
+                    vk::AccessFlags::TRANSFER_WRITE
+                );
+
+                match &i.clear {
+                    ClearConfig::None => {},
+                    ClearConfig::Color(r, g, b) => {
+                        unsafe {
+                            renderer.device.handle()
+                                .cmd_clear_color_image(
+                                    command_buffer.handle(),
+                                    *i.image.handle(),
+                                    vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                                    &vk::ClearColorValue {
+                                        float32: [*r, *g, *b, 1f32]
+                                    },
+                                    &[vk::ImageSubresourceRange {
+                                        aspect_mask: ImageAspectFlags::COLOR,
+                                        base_mip_level: 0,
+                                        level_count: 1,
+                                        base_array_layer: 0,
+                                        layer_count: 1,
+                                    }]
+                                );
+                        }
+                    }
+                }
+
+                renderer.transition_image(
+                    &command_buffer,
+                    &i.image.handle(),
+                    vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                    vk::ImageLayout::GENERAL,
+                    vk::PipelineStageFlags::TRANSFER,
+                    vk::PipelineStageFlags::COMPUTE_SHADER,
+                    vk::AccessFlags::TRANSFER_WRITE,
+                    vk::AccessFlags::SHADER_WRITE
+                );
+            }
+        }
+
+        // Compute images
+        let current_time = renderer.start_time.elapsed().as_secs_f32();
+        for p in self.passes.as_ref().unwrap() {
+            if let Some(pipeline) = renderer.pipeline_store().get(p.pipeline_handle) {
+                command_buffer.bind_pipeline(&pipeline);
+                let push_constants = PushConstants {
+                    time: current_time,
+                    in_image: p.in_images.first().map(|&x| x as i32).unwrap_or(-1),
+                    out_image: p.out_images.first().map(|&x| x as i32).unwrap_or(-1),
+                };
+                command_buffer.push_constants(&pipeline, vk::ShaderStageFlags::COMPUTE, 0, &bytemuck::cast_slice(std::slice::from_ref(&push_constants)));
+                command_buffer.bind_push_descriptor_images(
+                    &pipeline,
+                    &image_resources.iter().map(|r| {
+                        &r.image
+                    }).collect::<Vec<&Image>>()
+                );
+                command_buffer.dispatch(p.dispatches.x, p.dispatches.y, p.dispatches.z);
+            }
+
+            // TODO: Add synchronization between passes
+        };
+
+        self.sink.as_ref().map(|sink| {
+            let seekhead = sink.get_pos();
+            let render_time = renderer.start_time.elapsed();
+
+            if seekhead.abs_diff(render_time) > Duration::from_secs_f32(0.05) {
+                _ = Sink::try_seek(sink, render_time);
+            }
+        });
+
+        // Copy to target_image
+        {
+            let output_image = &image_resources.last().expect("No images found to output").image;
+
+            renderer.transition_image(
+                &command_buffer,
+                &output_image.handle(),
+                vk::ImageLayout::GENERAL,
+                vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
+                vk::PipelineStageFlags::TRANSFER,
+                vk::PipelineStageFlags::TRANSFER,
+                vk::AccessFlags::TRANSFER_WRITE,
+                vk::AccessFlags::TRANSFER_READ
+            );
+
+            // Transition the target image
+            renderer.transition_image(
+                &command_buffer,
+                &target_image,
+                src_layout,
+                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                vk::PipelineStageFlags::TOP_OF_PIPE,
+                vk::PipelineStageFlags::TRANSFER,
+                vk::AccessFlags::NONE,
+                vk::AccessFlags::TRANSFER_WRITE
+            );
+
+            unsafe {
+                renderer.device.handle().cmd_clear_color_image(
+                    command_buffer.handle(),
+                    *target_image,
+                    vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                    &vk::ClearColorValue {
+                        float32: [0.0, 0.0, 0.0, 1.0]
+                    },
+                    &[vk::ImageSubresourceRange {
+                        aspect_mask: ImageAspectFlags::COLOR,
+                        base_mip_level: 0,
+                        level_count: 1,
+                        base_array_layer: 0,
+                        layer_count: 1,
+                    }]
+                );
+
+                // Use a blit, as a copy doesn't synchronize properly to the targetimage on MoltenVK
+                renderer.device.handle().cmd_blit_image(
+                    command_buffer.handle(),
+                    *output_image.handle(),
+                    vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
+                    *target_image,
+                    vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                    &[vk::ImageBlit::default()
+                        .src_offsets([
+                            Offset3D::default(),
+                            Offset3D::default().x(output_image.width as i32).y(output_image.height as i32).z(1)
+                        ])
+                        .dst_offsets([
+                            Offset3D::default(),
+                            Offset3D::default().x(output_image.width as i32).y(output_image.height as i32).z(1)
+                        ])
+                        .src_subresource(
+                            ImageSubresourceLayers::default()
+                                .aspect_mask(ImageAspectFlags::COLOR)
+                                .base_array_layer(0)
+                                .layer_count(1)
+                                .mip_level(0)
+                        )
+                        .dst_subresource(
+                            ImageSubresourceLayers::default()
+                                .aspect_mask(ImageAspectFlags::COLOR)
+                                .base_array_layer(0)
+                                .layer_count(1)
+                                .mip_level(0)
+                        )
+                    ],
+                    vk::Filter::NEAREST,
+                );
+            }
+
+            // Transfer back to default states
+            renderer.transition_image(
+                &command_buffer,
+                &target_image,
+                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                dst_layout,
+                vk::PipelineStageFlags::TRANSFER,
+                vk::PipelineStageFlags::BOTTOM_OF_PIPE,
+                vk::AccessFlags::TRANSFER_WRITE,
+                vk::AccessFlags::NONE
+            );
+
+            renderer.transition_image(
+                &command_buffer,
+                output_image.handle(),
+                vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
+                vk::ImageLayout::GENERAL,
+                vk::PipelineStageFlags::TRANSFER,
+                vk::PipelineStageFlags::BOTTOM_OF_PIPE,
+                vk::AccessFlags::TRANSFER_READ,
+                vk::AccessFlags::NONE
+            );
         }
     }
 }
@@ -190,7 +431,7 @@ impl RenderComponent for DrawOrchestrator {
             }
         }
         image_command_buffer.end();
-        renderer.device.submit_single_time_command(renderer.queue, &image_command_buffer);
+        renderer.submit_single_time_command_buffer(image_command_buffer, Box::new(|| {}));
 
         let push_constant_ranges = Vec::from([
             vk::PushConstantRange::default()
@@ -261,229 +502,13 @@ impl RenderComponent for DrawOrchestrator {
         };
     }
 
-    fn render(&mut self, renderer: &mut Renderer, command_buffer: &mut CommandBuffer, swapchain_image: &vk::Image, view: &vk::ImageView) {
+    fn render(&mut self, renderer: &mut Renderer, command_buffer: &mut CommandBuffer, swapchain_image: &vk::Image, _view: &vk::ImageView) {
 
-        for i in self.image_resources.as_ref().unwrap() {
-            renderer.transition_image(
-                &command_buffer,
-                &i.image.handle(),
-                vk::ImageLayout::GENERAL,
-                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                vk::PipelineStageFlags::TOP_OF_PIPE,
-                vk::PipelineStageFlags::TRANSFER,
-                vk::AccessFlags::NONE,
-                vk::AccessFlags::TRANSFER_WRITE
-            );
-
-            match &i.clear {
-                ClearConfig::None => {},
-                ClearConfig::Color(r,g,b) => {
-                    unsafe {
-                        renderer.device.handle()
-                            .cmd_clear_color_image(
-                                command_buffer.handle(),
-                                *i.image.handle(),
-                                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                                &vk::ClearColorValue {
-                                    float32: [*r, *g, *b, 1f32]
-                                },
-                                &[vk::ImageSubresourceRange {
-                                    aspect_mask: ImageAspectFlags::COLOR,
-                                    base_mip_level: 0,
-                                    level_count: 1,
-                                    base_array_layer: 0,
-                                    layer_count: 1,
-                                }]
-                            );
-                    }
-                }
-            }
-
-            renderer.transition_image(
-                &command_buffer,
-                &i.image.handle(),
-                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                vk::ImageLayout::GENERAL,
-                vk::PipelineStageFlags::TRANSFER,
-                vk::PipelineStageFlags::COMPUTE_SHADER,
-                vk::AccessFlags::TRANSFER_WRITE,
-                vk::AccessFlags::SHADER_WRITE
-            );
-        }
-
-        // Compute images
-        let current_time = renderer.start_time.elapsed().as_secs_f32();
-        for p in self.passes.as_ref().unwrap() {
-            if let Some(pipeline) = renderer.pipeline_store().get(p.pipeline_handle) {
-                command_buffer.bind_pipeline(&pipeline);
-                let push_constants = PushConstants {
-                    time: current_time,
-                    in_image: p.in_images.first().map(|&x| x as i32).unwrap_or(-1),
-                    out_image: p.out_images.first().map(|&x| x as i32).unwrap_or(-1),
-                };
-                command_buffer.push_constants(&pipeline, vk::ShaderStageFlags::COMPUTE, 0, &bytemuck::cast_slice(std::slice::from_ref(&push_constants)));
-                command_buffer.bind_push_descriptor_images(
-                    &pipeline,
-                    &self.image_resources.as_ref().unwrap().iter().map(|r| {
-                        &r.image
-                    }).collect::<Vec<&Image>>()
-                );
-                command_buffer.dispatch(p.dispatches.x, p.dispatches.y, p.dispatches.z);
-            }
-
-            // TODO: Add synchronization between passes
-        };
-
-        self.sink.as_ref().map(|sink| {
-            let seekhead = sink.get_pos();
-            let render_time = renderer.start_time.elapsed();
-
-            if seekhead.abs_diff(render_time) > Duration::from_secs_f32(0.05) {
-                _ = Sink::try_seek(sink, render_time);
-            }
-        });
-
-        // Copy to swapchain
-
-        let output_image = &self.image_resources.as_ref().unwrap().last().expect("No images found to output").image;
-
-        renderer.transition_image(
-            &command_buffer,
-            &output_image.handle(),
-            vk::ImageLayout::GENERAL,
-            vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
-            vk::PipelineStageFlags::TRANSFER,
-            vk::PipelineStageFlags::TRANSFER,
-            vk::AccessFlags::TRANSFER_WRITE,
-            vk::AccessFlags::TRANSFER_READ
-        );
-
-
-        // Transition the swapchain image
-        renderer.transition_image(
-            &command_buffer,
-            &swapchain_image,
-            vk::ImageLayout::PRESENT_SRC_KHR,
-            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-            vk::PipelineStageFlags::TOP_OF_PIPE,
-            vk::PipelineStageFlags::TRANSFER,
-            vk::AccessFlags::NONE,
-            vk::AccessFlags::TRANSFER_WRITE
-        );
-
-        unsafe {
-
-            renderer.device.handle().cmd_clear_color_image(
-                command_buffer.handle(),
-                *swapchain_image,
-                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                &vk::ClearColorValue {
-                    float32: [0.0, 0.0, 0.0, 1.0]
-                },
-                &[vk::ImageSubresourceRange {
-                    aspect_mask: ImageAspectFlags::COLOR,
-                    base_mip_level: 0,
-                    level_count: 1,
-                    base_array_layer: 0,
-                    layer_count: 1,
-                }]
-            );
-
-            // Use a blit, as a copy doesn't synchronize properly to the swapchain on MoltenVK
-            renderer.device.handle().cmd_blit_image(
-                command_buffer.handle(),
-                *output_image.handle(),
-                vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
-                *swapchain_image,
-                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                &[vk::ImageBlit::default()
-                    .src_offsets([
-                        Offset3D::default(),
-                        Offset3D::default().x(output_image.width as i32).y(output_image.height as i32).z(1)
-                    ])
-                    .dst_offsets([
-                        Offset3D::default(),
-                        Offset3D::default().x(output_image.width as i32).y(output_image.height as i32).z(1)
-                    ])
-                    .src_subresource(
-                        ImageSubresourceLayers::default()
-                            .aspect_mask(ImageAspectFlags::COLOR)
-                            .base_array_layer(0)
-                            .layer_count(1)
-                            .mip_level(0)
-                    )
-                    .dst_subresource(
-                        ImageSubresourceLayers::default()
-                            .aspect_mask(ImageAspectFlags::COLOR)
-                            .base_array_layer(0)
-                            .layer_count(1)
-                            .mip_level(0)
-                    )
-                ],
-                vk::Filter::NEAREST,
-            );
-        }
-
-        // Image export
         if self.image_export.do_export {
-            if self.image_export.buffer.is_none() {
-                self.image_export.render_counter = 0;
-                self.image_export.buffer = Some(Buffer::new(
-                    &renderer.device,
-                    &mut renderer.allocator,
-                    MemoryLocation::GpuToCpu,
-                    (size_of::<u8>() as u32 * 4 * output_image.width * output_image.height) as DeviceSize,
-                    BufferUsageFlags::STORAGE_BUFFER | BufferUsageFlags::TRANSFER_DST
-                ));
-
-                command_buffer.copy_image_to_buffer(output_image, ImageLayout::TRANSFER_SRC_OPTIMAL, self.image_export.buffer.as_ref().unwrap(),
-                &[
-                    BufferImageCopy::default()
-                        .buffer_image_height(output_image.height)
-                        .buffer_offset(0)
-                        .image_extent(Extent3D::default().width(output_image.width).height(output_image.height).depth(1))
-                        .image_offset(Offset3D::default())
-                        .image_subresource(ImageSubresourceLayers::default()
-                            .layer_count(1)
-                            .mip_level(0)
-                            .aspect_mask(ImageAspectFlags::COLOR)
-                            .base_array_layer(0)
-                        )
-                ]);
-            } else {
-                self.image_export.render_counter = self.image_export.render_counter + 1;
-                // Be sure the buffer is no longer in use
-                if self.image_export.render_counter > 5 {
-                    let mut buffer = self.image_export.buffer.take().unwrap();
-                    let memory = buffer.mapped();
-                    let output_file = self.image_export.filename.clone().add(".png");
-                    write_png_image(memory, output_image.width, output_image.height, output_file.as_str());
-                    self.image_export.do_export = false;
-                }
-            }
+            self.export(renderer, renderer.swapchain.get_extent().width, renderer.swapchain.get_extent().height);
+            self.image_export.do_export = false;
         }
 
-        // Transfer back to default states
-        renderer.transition_image(
-            &command_buffer,
-            &swapchain_image,
-            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-            vk::ImageLayout::PRESENT_SRC_KHR,
-            vk::PipelineStageFlags::TRANSFER,
-            vk::PipelineStageFlags::BOTTOM_OF_PIPE,
-            vk::AccessFlags::TRANSFER_WRITE,
-            vk::AccessFlags::NONE
-        );
-
-        renderer.transition_image(
-            &command_buffer,
-            output_image.handle(),
-            vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
-            vk::ImageLayout::GENERAL,
-            vk::PipelineStageFlags::TRANSFER,
-            vk::PipelineStageFlags::BOTTOM_OF_PIPE,
-            vk::AccessFlags::TRANSFER_READ,
-            vk::AccessFlags::NONE
-        );
+        self.do_render(renderer, command_buffer, self.image_resources.as_ref().unwrap(), swapchain_image, ImageLayout::PRESENT_SRC_KHR, ImageLayout::PRESENT_SRC_KHR);
     }
 }

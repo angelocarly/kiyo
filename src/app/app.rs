@@ -4,8 +4,6 @@ use crate::app::draw_orch::{DrawConfig};
 use crate::app::audio_orch::{AudioConfig};
 use crate::app::audio_orch::AudioConfig::{AudioFile, Program, None};
 use cpal::Stream;
-use glam::UVec2;
-use log::{error, info};
 use cpal::traits::StreamTrait;
 use crate::app::{DrawOrchestrator};
 
