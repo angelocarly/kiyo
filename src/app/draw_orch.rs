@@ -16,6 +16,7 @@ use std::io::BufReader;
 use rodio::{Decoder, OutputStream, Sink};
 use core::time::{Duration};
 use std::ops::Add;
+use std::process::exit;
 use cen::app::gui::GuiComponent;
 use egui::{menu, Context, TopBottomPanel};
 use gpu_allocator::MemoryLocation;
@@ -126,11 +127,12 @@ impl DrawOrchestrator {
             height,
             ImageUsageFlags::STORAGE | ImageUsageFlags::TRANSFER_DST | ImageUsageFlags::TRANSFER_SRC
         );
+        let image_resources = Self::create_image_resources(renderer, &self.draw_config, width, height);
 
         let mut command_buffer = renderer.create_command_buffer();
         command_buffer.begin();
         {
-            self.do_render(renderer, &mut command_buffer, self.image_resources.as_ref().unwrap(), &output_image.handle(), ImageLayout::UNDEFINED, ImageLayout::TRANSFER_SRC_OPTIMAL);
+            self.do_render(renderer, &mut command_buffer, &image_resources, &output_image.handle(), ImageLayout::UNDEFINED, ImageLayout::TRANSFER_SRC_OPTIMAL);
 
             command_buffer.copy_image_to_buffer(
                 &output_image,
@@ -158,6 +160,7 @@ impl DrawOrchestrator {
             // TODO: This is to keep the image alive until submission, but that should happen automagically
             let image = output_image;
             image.handle();
+            let image_resources = image_resources;
 
             // Write png
             let memory = buffer.mapped();
@@ -357,6 +360,36 @@ impl DrawOrchestrator {
             );
         }
     }
+
+    fn create_image_resources(renderer: &mut Renderer, draw_config: &DrawConfig, width: u32, height: u32) -> Vec<ImageResource> {
+        let image_resources = draw_config.images.iter().map(|c| {
+            let image = Image::new(
+                &renderer.device,
+                &mut renderer.allocator,
+                width,
+                height,
+                vk::ImageUsageFlags::STORAGE | vk::ImageUsageFlags::TRANSFER_SRC | vk::ImageUsageFlags::TRANSFER_DST
+            );
+
+            ImageResource {
+                image,
+                clear: c.clear.clone(),
+            }
+        }).collect::<Vec<ImageResource>>();
+
+        // Transition images
+        let mut image_command_buffer = CommandBuffer::new(&renderer.device, &renderer.command_pool);
+        image_command_buffer.begin();
+        {
+            for image_resource in &image_resources {
+                renderer.transition_image(&image_command_buffer, &image_resource.image.handle(), vk::ImageLayout::UNDEFINED, vk::ImageLayout::GENERAL, vk::PipelineStageFlags::TOP_OF_PIPE, vk::PipelineStageFlags::BOTTOM_OF_PIPE, vk::AccessFlags::empty(), vk::AccessFlags::empty());
+            }
+        }
+        image_command_buffer.end();
+        renderer.submit_single_time_command_buffer(image_command_buffer, Box::new(|| {}));
+
+        image_resources
+    }
 }
 
 impl GuiComponent for DrawOrchestrator {
@@ -407,31 +440,7 @@ impl RenderComponent for DrawOrchestrator {
         );
 
         // Images
-        let image_resources = self.draw_config.images.iter().map(|c| {
-            let image = Image::new(
-                &renderer.device,
-                &mut renderer.allocator,
-                renderer.swapchain.get_extent().width,
-                renderer.swapchain.get_extent().height,
-                vk::ImageUsageFlags::STORAGE | vk::ImageUsageFlags::TRANSFER_SRC | vk::ImageUsageFlags::TRANSFER_DST
-            );
-
-            ImageResource {
-                image,
-                clear: c.clear.clone(),
-            }
-        }).collect::<Vec<ImageResource>>();
-
-        // Transition images
-        let mut image_command_buffer = CommandBuffer::new(&renderer.device, &renderer.command_pool);
-        image_command_buffer.begin();
-        {
-            for image_resource in &image_resources {
-                renderer.transition_image(&image_command_buffer, &image_resource.image.handle(), vk::ImageLayout::UNDEFINED, vk::ImageLayout::GENERAL, vk::PipelineStageFlags::TOP_OF_PIPE, vk::PipelineStageFlags::BOTTOM_OF_PIPE, vk::AccessFlags::empty(), vk::AccessFlags::empty());
-            }
-        }
-        image_command_buffer.end();
-        renderer.submit_single_time_command_buffer(image_command_buffer, Box::new(|| {}));
+        let image_resources = Self::create_image_resources(renderer, &self.draw_config, renderer.swapchain.get_extent().width, renderer.swapchain.get_extent().height);
 
         let push_constant_ranges = Vec::from([
             vk::PushConstantRange::default()
@@ -481,7 +490,11 @@ impl RenderComponent for DrawOrchestrator {
                 })
             })
             .collect::<Result<Vec<ShaderPass>, PipelineErr>>()
-            .expect("Failed to create shader pass");
+            .inspect_err(|err| {
+                error!("{}", err);
+                exit(0);
+            })
+            .unwrap();
 
         self.compute_descriptor_set_layout = Some(compute_descriptor_set_layout);
         self.image_resources = Some(image_resources);
