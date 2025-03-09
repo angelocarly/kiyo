@@ -13,7 +13,7 @@ categories = ["rendering::engine"]
 [dependencies]
 ash = { version = "0.38.0", features = ["linked"] }
 gpu-allocator = "0.27.0"
-cen = { git = "https://github.com/angelocarly/cen.git", rev = "a468e299b76641d1debf64283b6e172e1d08c21a" }
+cen = { git = "https://github.com/angelocarly/cen.git", rev = "89b58cd495f1d3ef7d0ec925443ab4bea29c8453" }
 cpal = "0.13.4"
 glam = "0.28.0"
 log = "0.4.22"

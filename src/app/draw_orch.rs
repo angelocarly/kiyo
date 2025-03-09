@@ -8,7 +8,7 @@ use cen::graphics::Renderer;
 use cen::graphics::renderer::RenderComponent;
 use cen::vulkan::{Buffer, CommandBuffer, DescriptorSetLayout, Image, PipelineErr};
 use glam::{UVec3};
-use log::{error};
+use log::{error, info};
 use crate::app::audio_orch::{AudioConfig};
 use crate::app::audio_orch::AudioConfig::AudioFile;
 use std::fs::File;
@@ -17,11 +17,14 @@ use rodio::{Decoder, OutputStream, Sink};
 use core::time::{Duration};
 use std::ops::Add;
 use std::process::exit;
+use std::thread;
 use cen::app::gui::GuiComponent;
 use egui::{menu, Context, TopBottomPanel};
 use gpu_allocator::MemoryLocation;
 use crate::app::png::{write_png_image};
 
+#[derive(Copy)]
+#[derive(Clone)]
 pub enum DispatchConfig
 {
     Count( u32, u32, u32 ),
@@ -60,7 +63,7 @@ pub struct DrawConfig {
 }
 
 pub struct ShaderPass {
-    pub dispatches: glam::UVec3,
+    pub dispatches: DispatchConfig,
     pub in_images: Vec<u32>,
     pub out_images: Vec<u32>,
     pub pipeline_handle: PipelineKey,
@@ -72,8 +75,8 @@ pub struct ImageResource {
 }
 
 struct ImgExport {
-    _width_text: String,
-    _height_text: String,
+    width: u32,
+    height: u32,
     filename: String,
     do_export: bool,
 }
@@ -105,27 +108,28 @@ impl DrawOrchestrator {
             image_export: ImgExport {
                 do_export: false,
                 filename: "output".to_string(),
-                _width_text: "".to_string(),
-                _height_text: "".to_string(),
+                width: 1920,
+                height: 1080,
             },
         }
     }
 
     fn export(&mut self, renderer: &mut Renderer, width: u32, height: u32) {
 
-        let mut buffer = Buffer::new(
-            &renderer.device,
-            &mut renderer.allocator,
-            MemoryLocation::GpuToCpu,
-            (size_of::<u8>() as u32 * 4 * width * height) as DeviceSize,
-            BufferUsageFlags::STORAGE_BUFFER | BufferUsageFlags::TRANSFER_DST
-        );
+        info!("Exporting...");
         let output_image = Image::new(
             &renderer.device,
             &mut renderer.allocator,
             width,
             height,
             ImageUsageFlags::STORAGE | ImageUsageFlags::TRANSFER_DST | ImageUsageFlags::TRANSFER_SRC
+        );
+        let mut buffer = Buffer::new(
+            &renderer.device,
+            &mut renderer.allocator,
+            MemoryLocation::GpuToCpu,
+            (size_of::<u8>() as u32 * 4 * width * height) as DeviceSize,
+            BufferUsageFlags::STORAGE_BUFFER | BufferUsageFlags::TRANSFER_DST
         );
         let image_resources = Self::create_image_resources(renderer, &self.draw_config, width, height);
 
@@ -163,9 +167,12 @@ impl DrawOrchestrator {
             let image_resources = image_resources;
 
             // Write png
-            let memory = buffer.mapped();
-            let output_file = filename.clone().add(".png");
-            write_png_image(memory, width, height, output_file.as_str());
+            thread::spawn(move || {
+                let memory = buffer.mapped();
+                let output_file = filename.clone().add(".png");
+                write_png_image(memory, width, height, output_file.as_str());
+                info!("Finished exporting png image to {}", output_file);
+            });
         }));
     }
 
@@ -242,7 +249,17 @@ impl DrawOrchestrator {
                         &r.image
                     }).collect::<Vec<&Image>>()
                 );
-                command_buffer.dispatch(p.dispatches.x, p.dispatches.y, p.dispatches.z);
+
+                match p.dispatches {
+                    DispatchConfig::FullScreen => {
+                        let width = image_resources.first().unwrap().image.width;
+                        let height = image_resources.first().unwrap().image.width;
+                        command_buffer.dispatch(width, height, 1);
+                    },
+                    DispatchConfig::Count(x, y, z) => {
+                        command_buffer.dispatch(x, y, z);
+                    }
+                }
             }
 
             // TODO: Add synchronization between passes
@@ -403,6 +420,10 @@ impl GuiComponent for DrawOrchestrator {
                     // ui.add(egui::TextEdit::singleline(&mut self.image_export.height_text));
                     ui.label("Filename");
                     ui.add(egui::TextEdit::singleline(&mut self.image_export.filename));
+                    ui.horizontal(|ui| {
+                        ui.add(egui::DragValue::new(&mut self.image_export.width));
+                        ui.add(egui::DragValue::new(&mut self.image_export.height));
+                    });
                     if ui.button("Save").clicked() {
                         self.image_export.do_export = true;
                     }
@@ -473,18 +494,9 @@ impl RenderComponent for DrawOrchestrator {
                     }
                 )?;
 
-                let dispatches = match c.dispatches {
-                    DispatchConfig::Count(x, y, z) => {
-                        UVec3::new(x, y, z)
-                    }
-                    DispatchConfig::FullScreen => {
-                        full_screen_dispatches
-                    }
-                };
-
                 Ok(ShaderPass {
                     pipeline_handle,
-                    dispatches: dispatches,
+                    dispatches: c.dispatches,
                     in_images: c.input_resources.clone(),
                     out_images: c.output_resources.clone(),
                 })
@@ -518,7 +530,7 @@ impl RenderComponent for DrawOrchestrator {
     fn render(&mut self, renderer: &mut Renderer, command_buffer: &mut CommandBuffer, swapchain_image: &vk::Image, _view: &vk::ImageView) {
 
         if self.image_export.do_export {
-            self.export(renderer, renderer.swapchain.get_extent().width, renderer.swapchain.get_extent().height);
+            self.export(renderer, self.image_export.width, self.image_export.height);
             self.image_export.do_export = false;
         }
 
