@@ -6,6 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6](https://github.com/angelocarly/kiyo/compare/v0.0.5...v0.0.6) - 2025-03-10
+
+### Other
+
+- Update README.md
+- Update Cargo.toml
+- Update rust.yml
+- Update rust.yml
+- Add custom resolution support
+- Better error logging when for shader compilation
+- Clean up image export using command buffer callbacks
+- Add initial image export
+- Connect egui
+- Fix cen version
+- use the most recent cen
+- added support for playing audio file
+- Add Fullscreen support
+- Use kiyo's Appconfig instead of cen's, this way dependencies don't need to include cen
+- Fix audio player getting destroyed
+- Update CHANGELOG.md
+- Update CHANGELOG.md
+
 ## [0.0.5](https://github.com/angelocarly/kiyo/compare/v0.0.4...v0.0.5) - 2024-10-19
 
 ### Other

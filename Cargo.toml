@@ -1,6 +1,6 @@
 [package]
 name = "kiyo"
-version = "0.0.5"
+version = "0.0.6"
 edition = "2021"
 authors = ["Angelo Carly <angelo.carly@protonmail.com"]
 description = "Lightweight compute shader playground"
