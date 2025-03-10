@@ -10,6 +10,7 @@ Kiyo provides a simple configuration interface to run compute shaders. The follo
 - Shared storage images between them
 - GLSL compile logging
 - Shader hot-reloading
+- PNG exporting at custom resolutions
 
 For any feedback or requests you are very welcome to create issues or contact me directly!
 
