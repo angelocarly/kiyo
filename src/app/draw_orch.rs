@@ -20,6 +20,7 @@ use std::process::exit;
 use std::thread;
 use cen::app::gui::GuiComponent;
 use egui::{menu, Context, TopBottomPanel};
+use egui::epaint::ColorMode::UV;
 use gpu_allocator::MemoryLocation;
 use crate::app::png::{write_png_image};
 
@@ -93,11 +94,13 @@ pub struct DrawOrchestrator {
     pub image_resources: Option<Vec<ImageResource>>,
     pub passes: Option<Vec<ShaderPass>>,
     image_export: ImgExport,
+    workgroup_size: u32
 }
 
 impl DrawOrchestrator {
     pub fn new(draw_config: DrawConfig, audio_config: AudioConfig) -> DrawOrchestrator {
         Self {
+            workgroup_size: 32,
             draw_config,
             audio_config,
             audio_stream: None,
@@ -164,7 +167,7 @@ impl DrawOrchestrator {
             // TODO: This is to keep the image alive until submission, but that should happen automagically
             let image = output_image;
             image.handle();
-            let image_resources = image_resources;
+            let _image_resources = image_resources;
 
             // Write png
             thread::spawn(move || {
@@ -254,7 +257,12 @@ impl DrawOrchestrator {
                     DispatchConfig::FullScreen => {
                         let width = image_resources.first().unwrap().image.width;
                         let height = image_resources.first().unwrap().image.width;
-                        command_buffer.dispatch(width, height, 1);
+                        let dispatches = UVec3::new(
+                            (width as f32 / self.workgroup_size as f32).ceil() as u32,
+                            (height as f32 / self.workgroup_size as f32).ceil() as u32,
+                            1
+                        );
+                        command_buffer.dispatch(dispatches.x, dispatches.y, dispatches.z);
                     },
                     DispatchConfig::Count(x, y, z) => {
                         command_buffer.dispatch(x, y, z);
@@ -470,16 +478,10 @@ impl RenderComponent for DrawOrchestrator {
                 .size(size_of::<PushConstants>() as u32),
         ]);
 
-        let workgroup_size = 32;
-        let full_screen_dispatches = UVec3::new(
-            (renderer.swapchain.get_extent().width as f32 / workgroup_size as f32).ceil() as u32,
-            (renderer.swapchain.get_extent().height as f32 / workgroup_size as f32).ceil() as u32,
-            1
-        );
-
+        self.workgroup_size = 32;
         let mut macros: HashMap<String, String> = HashMap::new();
         macros.insert("NUM_IMAGES".to_string(), image_count.to_string());
-        macros.insert("WORKGROUP_SIZE".to_string(), workgroup_size.to_string());
+        macros.insert("WORKGROUP_SIZE".to_string(), self.workgroup_size.to_string());
 
         // Passes
         let passes = self.draw_config.passes
