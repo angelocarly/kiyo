@@ -31,6 +31,10 @@ cd kiyo
 cargo run --example simple-render
 ```
 
+## Quickstart
+
+You can quickly setup a small Rust project using kiyo with [this](https://github.com/angelocarly/kiyo-template) template repository.
+
 ## GPU debugging
 
 ### Windows & Linux
